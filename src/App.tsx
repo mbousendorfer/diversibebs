@@ -685,9 +685,17 @@ function WeekPage({
   suggestions: Food[]
   store: ReturnType<typeof useBabyStore>
 }) {
-  const topFood = suggestions[0]
-  const alternatives = suggestions.slice(1, 3)
-  const weeklyPlan = suggestions.slice(1)
+  const [discardedSuggestionIds, setDiscardedSuggestionIds] = useState<string[]>([])
+  const visibleSuggestions = suggestions.filter((food) => !discardedSuggestionIds.includes(food.id))
+  const topFood = visibleSuggestions[0]
+  const alternatives = visibleSuggestions.slice(1, 3)
+  const weeklyPlan = visibleSuggestions.slice(1)
+
+  function postponeTopFood() {
+    if (!topFood) return
+    setDiscardedSuggestionIds((current) => [...current, topFood.id])
+    toast.info(`${topFood.name} proposé plus tard`)
+  }
 
   return (
     <>
@@ -722,11 +730,16 @@ function WeekPage({
                 <IntroductionBadge level={topFood.level} />
                 {topFood.isPopoteEligible && <PopoteBadge label="Popote possible" />}
               </div>
-              <div className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-md bg-primary-foreground/10 p-3">
+              <div className="grid gap-3 rounded-md bg-primary-foreground/10 p-3 sm:grid-cols-[1fr_auto] sm:items-center">
                 <p className="text-sm text-primary-foreground/80">
                   Faites-le simple : un petit test, puis notez seulement si quelque chose mérite d’être retenu.
                 </p>
-                <FoodDetail food={topFood} store={store} inverted />
+                <div className="grid grid-cols-2 gap-2 sm:flex">
+                  <Button type="button" variant="ghost" className="bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20 hover:text-primary-foreground" onClick={postponeTopFood}>
+                    Plus tard
+                  </Button>
+                  <FoodDetail food={topFood} store={store} inverted />
+                </div>
               </div>
             </CardContent>
           </Card>
