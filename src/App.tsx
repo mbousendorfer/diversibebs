@@ -1002,7 +1002,9 @@ function FoodDetail({
                 {isInSeason(food) && <SeasonBadge />}
                 <IntroductionBadge level={food.level} />
                 {food.isPopoteEligible && <PopoteBadge label="Popote possible" />}
-                <Badge variant="outline">{monthNames(food.seasonMonths)}</Badge>
+                <Badge variant="outline" className="h-8 max-w-full gap-1.5 truncate px-3">
+                  {monthNames(food.seasonMonths)}
+                </Badge>
               </div>
               <p className="rounded-md bg-muted p-4 text-sm leading-6">{food.preparation}</p>
               <Separator />
@@ -1055,15 +1057,15 @@ function FoodDetail({
 }
 
 function StatusBadge({ status }: { status: string }) {
-  if (status === "réaction") return <Badge variant="destructive">réaction</Badge>
-  if (status === "testé") return <Badge>testé</Badge>
-  return <Badge variant="outline">non testé</Badge>
+  if (status === "réaction") return <Badge variant="destructive" className="h-8 px-3">réaction</Badge>
+  if (status === "testé") return <Badge className="h-8 px-3">testé</Badge>
+  return <Badge variant="outline" className="h-8 px-3">non testé</Badge>
 }
 
 function SeasonBadge() {
   return (
-    <Badge className="border-emerald-500/25 bg-emerald-500 text-white shadow-sm shadow-emerald-900/10 dark:bg-emerald-400 dark:text-emerald-950">
-      <Leaf data-icon="inline-start" aria-hidden="true" />
+    <Badge className="h-8 gap-1.5 border-emerald-500/25 bg-emerald-500 px-3 text-white shadow-sm shadow-emerald-900/10 dark:bg-emerald-400 dark:text-emerald-950">
+      <Leaf className="size-4" aria-hidden="true" />
       de saison
     </Badge>
   )
@@ -1076,6 +1078,7 @@ function IntroductionBadge({ level }: { level: Food["level"] }) {
     <Badge
       variant="outline"
       className={cn(
+        "h-8 px-3",
         level === "conseillé"
           ? "border-primary/25 bg-primary/10 text-primary"
           : "border-amber-500/25 bg-amber-500/10 text-amber-800 dark:text-amber-200",
@@ -1088,8 +1091,8 @@ function IntroductionBadge({ level }: { level: Food["level"] }) {
 
 function PopoteBadge({ label = "Popote" }: { label?: string }) {
   return (
-    <Badge variant="outline" className="border-sky-500/25 bg-sky-500/10 text-sky-800 dark:text-sky-200">
-      <PackageCheck data-icon="inline-start" aria-hidden="true" />
+    <Badge variant="outline" className="h-8 gap-1.5 border-sky-500/25 bg-sky-500/10 px-3 text-sky-800 dark:text-sky-200">
+      <PackageCheck className="size-4" aria-hidden="true" />
       {label}
     </Badge>
   )
