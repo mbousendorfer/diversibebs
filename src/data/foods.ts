@@ -11,6 +11,7 @@ export type RecommendationLevel = "conseillé" | "possible"
 export type Food = {
   id: string
   name: string
+  emoji: string
   category: FoodCategory
   minAgeMonths: number
   seasonMonths: number[]
@@ -23,6 +24,7 @@ export const foods: Food[] = [
   {
     id: "carotte",
     name: "Carotte",
+    emoji: "🥕",
     category: "Légumes",
     minAgeMonths: 4,
     seasonMonths: [1, 2, 3, 4, 5, 9, 10, 11, 12],
@@ -33,6 +35,7 @@ export const foods: Food[] = [
   {
     id: "courgette",
     name: "Courgette",
+    emoji: "🥒",
     category: "Légumes",
     minAgeMonths: 4,
     seasonMonths: [5, 6, 7, 8, 9],
@@ -43,6 +46,7 @@ export const foods: Food[] = [
   {
     id: "haricot-vert",
     name: "Haricot vert",
+    emoji: "🫛",
     category: "Légumes",
     minAgeMonths: 4,
     seasonMonths: [6, 7, 8, 9, 10],
@@ -53,6 +57,7 @@ export const foods: Food[] = [
   {
     id: "potiron",
     name: "Potiron",
+    emoji: "🎃",
     category: "Légumes",
     minAgeMonths: 4,
     seasonMonths: [1, 2, 3, 9, 10, 11, 12],
@@ -63,6 +68,7 @@ export const foods: Food[] = [
   {
     id: "patate-douce",
     name: "Patate douce",
+    emoji: "🍠",
     category: "Féculents",
     minAgeMonths: 4,
     seasonMonths: [1, 2, 3, 9, 10, 11, 12],
@@ -73,6 +79,7 @@ export const foods: Food[] = [
   {
     id: "pomme-de-terre",
     name: "Pomme de terre",
+    emoji: "🥔",
     category: "Féculents",
     minAgeMonths: 4,
     seasonMonths: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
@@ -83,6 +90,7 @@ export const foods: Food[] = [
   {
     id: "pomme",
     name: "Pomme",
+    emoji: "🍎",
     category: "Fruits",
     minAgeMonths: 4,
     seasonMonths: [1, 2, 3, 9, 10, 11, 12],
@@ -93,6 +101,7 @@ export const foods: Food[] = [
   {
     id: "poire",
     name: "Poire",
+    emoji: "🍐",
     category: "Fruits",
     minAgeMonths: 4,
     seasonMonths: [1, 2, 3, 8, 9, 10, 11, 12],
@@ -103,6 +112,7 @@ export const foods: Food[] = [
   {
     id: "banane",
     name: "Banane",
+    emoji: "🍌",
     category: "Fruits",
     minAgeMonths: 4,
     seasonMonths: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
@@ -113,6 +123,7 @@ export const foods: Food[] = [
   {
     id: "farine-riz",
     name: "Farine de riz",
+    emoji: "🍚",
     category: "Féculents",
     minAgeMonths: 4,
     seasonMonths: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
@@ -123,6 +134,7 @@ export const foods: Food[] = [
   {
     id: "lentille-corail",
     name: "Lentille corail",
+    emoji: "🫘",
     category: "Féculents",
     minAgeMonths: 4,
     seasonMonths: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
@@ -133,6 +145,7 @@ export const foods: Food[] = [
   {
     id: "yaourt-nature",
     name: "Yaourt nature",
+    emoji: "🥛",
     category: "Produits laitiers",
     minAgeMonths: 6,
     seasonMonths: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
@@ -143,6 +156,7 @@ export const foods: Food[] = [
   {
     id: "oeuf",
     name: "Oeuf",
+    emoji: "🥚",
     category: "Allergènes",
     minAgeMonths: 6,
     seasonMonths: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
@@ -153,6 +167,7 @@ export const foods: Food[] = [
   {
     id: "poisson-blanc",
     name: "Poisson blanc",
+    emoji: "🐟",
     category: "Protéines",
     minAgeMonths: 6,
     seasonMonths: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
@@ -170,4 +185,3 @@ export const categories: FoodCategory[] = [
   "Produits laitiers",
   "Allergènes",
 ]
-

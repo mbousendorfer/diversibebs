@@ -285,8 +285,8 @@ function HomePage({
               if (!food) return null
               return (
                 <div key={test.id} className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-medium">{food.name}</p>
+                <div>
+                  <p className="font-medium">{food.emoji} {food.name}</p>
                     <p className="text-sm text-muted-foreground">{new Date(test.date).toLocaleDateString("fr-FR")}</p>
                   </div>
                   <StatusBadge status={test.reaction === "aucune réaction" ? "testé" : "réaction"} />
@@ -375,7 +375,7 @@ function WeekPage({
             <CardHeader>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <CardTitle>{food.name}</CardTitle>
+                  <CardTitle>{food.emoji} {food.name}</CardTitle>
                   <CardDescription>{food.preparation}</CardDescription>
                 </div>
                 <FoodDetail food={food} store={store} />
@@ -417,7 +417,7 @@ function HistoryPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
                   </div>
                   <div className="pb-4">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="font-medium">{food.name}</p>
+                      <p className="font-medium">{food.emoji} {food.name}</p>
                       <p className="text-xs text-muted-foreground">{new Date(test.date).toLocaleDateString("fr-FR")}</p>
                     </div>
                     <p className="text-sm text-muted-foreground">{test.reaction}</p>
@@ -575,9 +575,14 @@ function FoodCard({ food, store }: { food: Food; store: ReturnType<typeof useBab
     <Card className="bg-card/90">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <CardTitle className="truncate">{food.name}</CardTitle>
-            <CardDescription>{food.category} · dès {food.minAgeMonths} mois</CardDescription>
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-secondary text-2xl" aria-hidden="true">
+              {food.emoji}
+            </span>
+            <div className="min-w-0">
+              <CardTitle className="truncate">{food.name}</CardTitle>
+              <CardDescription>{food.category} · dès {food.minAgeMonths} mois</CardDescription>
+            </div>
           </div>
           <FoodDetail food={food} store={store} />
         </div>
@@ -603,7 +608,9 @@ function FoodRow({
   return (
     <div className="flex items-center justify-between gap-3 rounded-md bg-background/12 p-3">
       <div className="min-w-0">
-        <p className={cn("font-medium", inverted && "text-primary-foreground")}>{food.name}</p>
+        <p className={cn("font-medium", inverted && "text-primary-foreground")}>
+          <span aria-hidden="true">{food.emoji}</span> {food.name}
+        </p>
         <p className={cn("truncate text-sm text-muted-foreground", inverted && "text-primary-foreground/70")}>
           {suggestionReasons(food).slice(0, 2).join(" · ")}
         </p>
@@ -653,7 +660,7 @@ function FoodDetail({
       <Drawer open={open} onOpenChange={setOpen}>
         <DrawerContent side="bottom" className="max-h-[90svh]">
           <DrawerHeader>
-            <DrawerTitle>{food.name}</DrawerTitle>
+            <DrawerTitle>{food.emoji} {food.name}</DrawerTitle>
             <DrawerDescription>
               {food.category} · adapté dès {food.minAgeMonths} mois
             </DrawerDescription>
