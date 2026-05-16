@@ -37,6 +37,7 @@ export function weeklySuggestions(
   const categoryCounts = new Map<FoodCategory, number>()
   const ranked = foods
     .filter((food) => isAgeReady(food, ageMonths))
+    .filter((food) => !food.tags.includes("à éviter") && !food.tags.includes("pas avant 3 ans"))
     .filter((food) => !testedFoodIds.has(food.id))
     .sort((a, b) => {
       const score = (food: Food) =>

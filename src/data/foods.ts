@@ -3,6 +3,7 @@ export type FoodCategory =
   | "Fruits"
   | "Féculents"
   | "Protéines"
+  | "Matières grasses"
   | "Produits laitiers"
   | "Allergènes"
   | "Divers"
@@ -89,27 +90,74 @@ function slugify(value: string) {
     .toLowerCase()
 }
 
+const cerealNames = new Set([
+  "Farine infantile",
+  "Avoine",
+  "Blé (farine)",
+  "Maïs (doux)",
+  "Pain",
+  "Pâtes",
+  "Polenta",
+  "Quinoa",
+  "Riz blanc",
+  "Riz semi-complet",
+  "Sarrasin",
+  "Semoule, boulgour",
+  "Tapioca",
+])
+
+const legumeNames = new Set([
+  "Fèves",
+  "Haricots blancs",
+  "Haricots rouges",
+  "Lentilles corail",
+  "Lentilles vertes",
+  "Pois chiches",
+])
+
+const nutNames = new Set(["Amande", "Noisette", "Noix"])
+
 function preparationFor(source: FoodSource) {
   if (source.preparation) return source.preparation
 
   if (source.category === "Légumes") {
-    return "Cuire sans sel ajouté puis proposer en texture adaptée à l’âge."
+    return "Cuits et mixés. Faire évoluer les textures : cuits et mixés > moulinés, écrasés > petits morceaux mous, fondants."
   }
 
   if (source.category === "Fruits") {
-    return "Proposer sans sucre ajouté, en compote ou texture adaptée à l’âge."
+    if (nutNames.has(source.name)) {
+      return "En poudre ou en purée, mélangé à d’autres aliments, sans sel ajouté."
+    }
+
+    return "Cuits et mixés, puis cuits ou crus et bien mûrs : en compote, écrasés, en morceaux fondants."
   }
 
   if (source.category === "Féculents") {
-    return "Préparer sans sel ajouté, en texture adaptée à l’âge."
+    if (source.name === "Pomme de terre") {
+      return "En purée avec des légumes, puis avec des légumes en alternant avec d’autres féculents."
+    }
+
+    if (legumeNames.has(source.name)) {
+      return "En purée, en petite quantité. Puis en purée > écrasés > morceaux fondants, selon la tolérance digestive de l’enfant."
+    }
+
+    if (cerealNames.has(source.name)) {
+      return "Farine ou bouillies, puis formes plus texturées : riz, semoule, pâtes, polenta, flocons d’avoine."
+    }
+
+    return "Avec des légumes, alterner avec d’autres féculents. Faire évoluer les textures selon les capacités de mastication."
   }
 
   if (source.category === "Protéines") {
-    return "Bien cuire et proposer en quantité adaptée à l’âge."
+    return "Très cuits et mixés, puis bien cuits et mixés ou hachés."
+  }
+
+  if (source.category === "Matières grasses") {
+    return "Selon la diminution des apports en lait maternel ou infantile. Repère du tableau : 1 c. à café à chaque repas."
   }
 
   if (source.category === "Produits laitiers") {
-    return "Proposer occasionnellement, sans sucre ajouté."
+    return "Laitages natures. Le lait maternel ou infantile reste mieux adapté ; ces produits viennent en complément."
   }
 
   return "Introduire en respectant l’âge indiqué par le tableau source."
@@ -244,22 +292,33 @@ const starchSources: FoodSource[] = [
 ]
 
 const animalProteinSources: FoodSource[] = [
-  { name: "Viande blanche", emoji: "🍗", category: "Protéines", level: "possible", preparation: "Bien cuire. Repère du tableau : 10 g à 6 mois, 15 g à 9 mois, 20 g à 12 mois." },
-  { name: "Viande rouge", emoji: "🥩", category: "Protéines", level: "possible", preparation: "Bien cuire. Repère du tableau : 10 g à 6 mois, 15 g à 9 mois, 20 g à 12 mois." },
-  { name: "Poisson maigre", emoji: "🐟", category: "Protéines", level: "possible", preparation: "Bien cuire. Repère du tableau : 10 g à 6 mois, 15 g à 9 mois, 20 g à 12 mois." },
-  { name: "Poisson gras", emoji: "🐟", category: "Protéines", level: "possible", preparation: "Bien cuire. Repère du tableau : 10 g à 6 mois, 15 g à 9 mois, 20 g à 12 mois." },
-  { name: "Oeuf", emoji: "🥚", category: "Protéines", level: "possible", tags: ["allergène"], preparation: "Bien cuire. Repère du tableau : 1/4 à 6 mois, 1/4 à 9 mois, 1/3 à 12 mois." },
-  { name: "Fruits de mer (cuits)", emoji: "🦐", category: "Protéines", level: "possible", tags: ["allergène"], preparation: "Bien cuire. Repère du tableau : 10 g à 6 mois, 15 g à 9 mois, 20 g à 12 mois." },
-  { name: "Charcuterie", emoji: "🥓", category: "Protéines", level: "possible", minAgeMonths: 36, tags: ["pas avant 3 ans"], preparation: "Le tableau indique : pas avant 3 ans." },
+  { name: "Viande blanche", emoji: "🍗", category: "Protéines", level: "possible", preparation: "Très cuits et mixés, puis bien cuits et mixés ou hachés. Repère du tableau : 10 g par jour puis 20 g par jour à 1 an." },
+  { name: "Viande rouge", emoji: "🥩", category: "Protéines", level: "possible", preparation: "Très cuits et mixés, puis bien cuits et mixés ou hachés. Repère du tableau : 10 g par jour puis 20 g par jour à 1 an." },
+  { name: "Poisson maigre", emoji: "🐟", category: "Protéines", level: "possible", preparation: "Très cuits et mixés, puis bien cuits et mixés ou hachés. Repère du tableau : 10 g par jour puis 20 g par jour à 1 an." },
+  { name: "Poisson gras", emoji: "🐟", category: "Protéines", level: "possible", preparation: "Très cuits et mixés, puis bien cuits et mixés ou hachés. Repère du tableau : 10 g par jour puis 20 g par jour à 1 an." },
+  { name: "Oeuf", emoji: "🥚", category: "Protéines", level: "possible", tags: ["allergène"], preparation: "Oeuf dur mixé, puis 1/4 d’oeuf bien cuit, puis 1/3 d’oeuf bien cuit à 1 an." },
+  { name: "Fruits de mer (cuits)", emoji: "🦐", category: "Protéines", level: "possible", tags: ["allergène"], preparation: "Très cuits et mixés, puis bien cuits et mixés ou hachés. Repère du tableau : 10 g par jour puis 20 g par jour à 1 an." },
+  { name: "Jambon blanc", emoji: "🥓", category: "Protéines", level: "possible", minAgeMonths: 36, tags: ["charcuterie", "à éviter"], preparation: "Charcuteries : à éviter, sauf le jambon blanc ou exceptionnellement des charcuteries cuites." },
+  { name: "Charcuterie", emoji: "🥓", category: "Protéines", level: "possible", minAgeMonths: 36, tags: ["pas avant 3 ans"], preparation: "Tableau détaillé : pas avant 3 ans. Tableau général : à éviter, sauf le jambon blanc ou exceptionnellement des charcuteries cuites." },
+]
+
+const fatSources: FoodSource[] = [
+  { name: "Huile de colza", emoji: "🫒", category: "Matières grasses", level: "possible" },
+  { name: "Huile de noix", emoji: "🫒", category: "Matières grasses", level: "possible", tags: ["allergène"] },
+  { name: "Huile d’olive", emoji: "🫒", category: "Matières grasses", level: "possible" },
 ]
 
 const miscellaneousSources: FoodSource[] = [
   { name: "Miel", emoji: "🍯", category: "Divers", level: "possible", minAgeMonths: 12 },
-  { name: "Yaourt", emoji: "🥛", category: "Produits laitiers", level: "possible", preparation: "Le lait maternel ou infantile reste le plus adapté ; le tableau indique que des laitages peuvent être proposés de temps en temps." },
-  { name: "Fromage pasteurisé", emoji: "🧀", category: "Produits laitiers", level: "possible", preparation: "Le lait maternel ou infantile reste le plus adapté ; le tableau indique que des laitages peuvent être proposés de temps en temps." },
+  { name: "Yaourt", emoji: "🥛", category: "Produits laitiers", level: "possible" },
+  { name: "Fromage blanc", emoji: "🥛", category: "Produits laitiers", level: "possible" },
+  { name: "Petit-suisse", emoji: "🥛", category: "Produits laitiers", level: "possible" },
+  { name: "Fromage pasteurisé", emoji: "🧀", category: "Produits laitiers", level: "possible" },
   { name: "Fromage au lait cru", emoji: "🧀", category: "Produits laitiers", level: "possible", minAgeMonths: 60, tags: ["pas avant 5 ans"], preparation: "Le tableau indique : pas avant 5 ans." },
   { name: "Herbes et épices", emoji: "🌿", category: "Divers", level: "conseillé", minAgeMonths: 6 },
   { name: "Chocolat", emoji: "🍫", category: "Divers", level: "possible", minAgeMonths: 12 },
+  { name: "Sel ajouté", emoji: "🧂", category: "Divers", level: "possible", minAgeMonths: 36, tags: ["à éviter"], preparation: "À éviter. Ne pas ajouter de sel dans les préparations, limiter les produits salés." },
+  { name: "Sucre ajouté", emoji: "🍬", category: "Divers", level: "possible", minAgeMonths: 36, tags: ["à éviter"], preparation: "À éviter. Ne pas ajouter de sucre dans les préparations, limiter les produits sucrés." },
 ]
 
 const mergedSources = [
@@ -267,6 +326,7 @@ const mergedSources = [
   ...fruitSources,
   ...starchSources,
   ...animalProteinSources,
+  ...fatSources,
   ...miscellaneousSources,
 ]
 
@@ -277,6 +337,7 @@ export const categories: FoodCategory[] = [
   "Fruits",
   "Féculents",
   "Protéines",
+  "Matières grasses",
   "Produits laitiers",
   "Allergènes",
   "Divers",
