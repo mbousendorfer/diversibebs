@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { NavLink, Route, Routes } from "react-router-dom"
 import {
   Baby,
@@ -8,7 +8,6 @@ import {
   Copy,
   Home,
   Leaf,
-  ListFilter,
   LockKeyhole,
   LogOut,
   Monitor,
@@ -19,8 +18,10 @@ import {
   RefreshCw,
   Search,
   Settings,
+  SlidersHorizontal,
   Sparkles,
   Sun,
+  X,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -69,14 +70,41 @@ import { cn } from "@/lib/utils"
 const disclaimer =
   "Cette application est un outil personnel de suivi. Elle ne remplace pas les conseils d’un pédiatre ou professionnel de santé."
 
-type Filter =
-  | "Tous"
-  | "Testés"
-  | "Non testés"
-  | "De saison"
-  | (typeof categories)[number]
+type FoodStatusFilter = "tous" | "non-testes" | "testes" | "reaction"
+type IntroductionFilter = "toutes" | "conseillee" | "possible"
 
-const allFilters: Filter[] = ["Tous", ...categories, "Testés", "Non testés", "De saison"]
+type FoodFilters = {
+  allergensOnly: boolean
+  category: FoodCategoryFilter
+  introduction: IntroductionFilter
+  popoteOnly: boolean
+  seasonOnly: boolean
+  status: FoodStatusFilter
+}
+
+type FoodCategoryFilter = "Toutes" | (typeof categories)[number]
+
+const initialFoodFilters: FoodFilters = {
+  allergensOnly: false,
+  category: "Toutes",
+  introduction: "toutes",
+  popoteOnly: false,
+  seasonOnly: false,
+  status: "tous",
+}
+
+const statusFilterLabels: Record<FoodStatusFilter, string> = {
+  tous: "Tous",
+  "non-testes": "Non testés",
+  testes: "Testés",
+  reaction: "Réaction",
+}
+
+const introductionFilterLabels: Record<IntroductionFilter, string> = {
+  toutes: "Toutes",
+  conseillee: "Conseillée",
+  possible: "Possible",
+}
 
 type ThemeMode = "light" | "system" | "dark"
 
@@ -309,61 +337,345 @@ function HomePage({
 
 function FoodsPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
   const [query, setQuery] = useState("")
-  const [filter, setFilter] = useState<Filter>("Tous")
+  const [filters, setFilters] = useState<FoodFilters>(initialFoodFilters)
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false)
+  const normalizedQuery = query.toLowerCase().trim()
+
+  function updateFilters(nextFilters: Partial<FoodFilters>) {
+    setFilters((current) => ({ ...current, ...nextFilters }))
+  }
+
+  function resetFilters() {
+    setFilters(initialFoodFilters)
+  }
+
+  const ageReadyFoods = useMemo(
+    () => foods.filter((food) => isAgeReady(food, store.profile.ageMonths)),
+    [store.profile.ageMonths],
+  )
+
+  const searchableFoods = useMemo(
+    () => ageReadyFoods.filter((food) => food.name.toLowerCase().includes(normalizedQuery)),
+    [ageReadyFoods, normalizedQuery],
+  )
+
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<FoodCategoryFilter, number>([["Toutes", searchableFoods.length]])
+    categories.forEach((category) => {
+      counts.set(category, searchableFoods.filter((food) => food.category === category).length)
+    })
+    return counts
+  }, [searchableFoods])
+
+  const presetCounts = useMemo(
+    () => ({
+      allergens: searchableFoods.filter((food) => food.tags.includes("allergène")).length,
+      popote: searchableFoods.filter((food) => food.isPopoteEligible).length,
+      season: searchableFoods.filter((food) => isInSeason(food)).length,
+      untested: searchableFoods.filter((food) => getStatus(food.id, store.latestByFood) === "non testé").length,
+    }),
+    [searchableFoods, store.latestByFood],
+  )
+
+  const activeFilterChips = useMemo(() => {
+    const chips: Array<{ key: keyof FoodFilters; label: string; reset: Partial<FoodFilters> }> = []
+    if (filters.category !== "Toutes") chips.push({ key: "category", label: filters.category, reset: { category: "Toutes" } })
+    if (filters.status !== "tous") chips.push({ key: "status", label: statusFilterLabels[filters.status], reset: { status: "tous" } })
+    if (filters.introduction !== "toutes") chips.push({ key: "introduction", label: `Introduction ${introductionFilterLabels[filters.introduction].toLowerCase()}`, reset: { introduction: "toutes" } })
+    if (filters.seasonOnly) chips.push({ key: "seasonOnly", label: "De saison", reset: { seasonOnly: false } })
+    if (filters.allergensOnly) chips.push({ key: "allergensOnly", label: "Allergènes", reset: { allergensOnly: false } })
+    if (filters.popoteOnly) chips.push({ key: "popoteOnly", label: "Popote", reset: { popoteOnly: false } })
+    return chips
+  }, [filters])
+
+  const hasActiveFilters = activeFilterChips.length > 0
 
   const filteredFoods = useMemo(() => {
-    return foods
+    return searchableFoods
       .filter((food) => {
         const status = getStatus(food.id, store.latestByFood)
-        const matchesQuery = food.name.toLowerCase().includes(query.toLowerCase().trim())
-        const matchesFilter =
-          filter === "Tous" ||
-          food.category === filter ||
-          (filter === "Allergènes" && food.tags.includes("allergène")) ||
-          (filter === "Testés" && status !== "non testé") ||
-          (filter === "Non testés" && status === "non testé") ||
-          (filter === "De saison" && isInSeason(food))
-        return matchesQuery && matchesFilter && isAgeReady(food, store.profile.ageMonths)
+        const matchesCategory = filters.category === "Toutes" || food.category === filters.category
+        const matchesStatus =
+          filters.status === "tous" ||
+          (filters.status === "non-testes" && status === "non testé") ||
+          (filters.status === "testes" && status === "testé") ||
+          (filters.status === "reaction" && status === "réaction")
+        const matchesIntroduction =
+          filters.introduction === "toutes" ||
+          (filters.introduction === "conseillee" && food.level === "conseillé") ||
+          (filters.introduction === "possible" && food.level === "possible")
+        const matchesSeason = !filters.seasonOnly || isInSeason(food)
+        const matchesAllergens = !filters.allergensOnly || food.tags.includes("allergène")
+        const matchesPopote = !filters.popoteOnly || food.isPopoteEligible
+
+        return matchesCategory && matchesStatus && matchesIntroduction && matchesSeason && matchesAllergens && matchesPopote
       })
       .sort((a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base" }))
-  }, [filter, query, store.latestByFood, store.profile.ageMonths])
+  }, [filters, searchableFoods, store.latestByFood])
 
   return (
     <>
       <Header eyebrow="Catalogue" title="Aliments adaptés" />
       <div className="flex flex-col gap-3">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-          <Input
-            className="pl-10"
-            placeholder="Rechercher un aliment"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
+        <div className="grid grid-cols-[1fr_auto] gap-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <Input
+              className="pl-10"
+              placeholder="Rechercher un aliment"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </div>
+          <Button type="button" variant={hasActiveFilters ? "default" : "outline"} onClick={() => setIsFiltersOpen(true)}>
+            <SlidersHorizontal data-icon="inline-start" aria-hidden="true" />
+            Filtres
+            {activeFilterChips.length > 0 && <span className="rounded-full bg-background/20 px-1.5 text-xs">{activeFilterChips.length}</span>}
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <QuickFilterButton
+            active={filters.status === "non-testes"}
+            count={presetCounts.untested}
+            label="À tester"
+            onClick={() => updateFilters({ status: filters.status === "non-testes" ? "tous" : "non-testes" })}
+          />
+          <QuickFilterButton
+            active={filters.seasonOnly}
+            count={presetCounts.season}
+            label="De saison"
+            onClick={() => updateFilters({ seasonOnly: !filters.seasonOnly })}
+          />
+          <QuickFilterButton
+            active={filters.popoteOnly}
+            count={presetCounts.popote}
+            label="Popote"
+            onClick={() => updateFilters({ popoteOnly: !filters.popoteOnly })}
+          />
+          <QuickFilterButton
+            active={filters.allergensOnly}
+            count={presetCounts.allergens}
+            label="Allergènes"
+            onClick={() => updateFilters({ allergensOnly: !filters.allergensOnly })}
           />
         </div>
-        <ScrollArea className="w-full whitespace-nowrap">
-          <div className="flex gap-2 pb-2">
-            {allFilters.map((item) => (
+
+        <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+          <span>{filteredFoods.length} aliment(s)</span>
+          {hasActiveFilters && (
+            <Button type="button" variant="ghost" size="sm" onClick={resetFilters}>
+              Réinitialiser
+            </Button>
+          )}
+        </div>
+
+        {activeFilterChips.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {activeFilterChips.map((chip) => (
               <Button
-                key={item}
+                key={chip.key}
                 type="button"
-                variant={filter === item ? "default" : "outline"}
+                variant="secondary"
                 size="sm"
-                onClick={() => setFilter(item)}
+                className="h-8 gap-1 rounded-full px-3"
+                onClick={() => updateFilters(chip.reset)}
               >
-                {item === "Tous" && <ListFilter data-icon="inline-start" aria-hidden="true" />}
-                {item}
+                {chip.label}
+                <X className="size-3.5" aria-hidden="true" />
               </Button>
             ))}
           </div>
-        </ScrollArea>
+        )}
       </div>
-      <div className="flex flex-col gap-3">
-        {filteredFoods.map((food) => (
-          <FoodCard key={food.id} food={food} store={store} />
-        ))}
-      </div>
+
+      {filteredFoods.length === 0 ? (
+        <Card className="bg-card/90">
+          <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
+            <div className="rounded-full bg-secondary p-3">
+              <Search aria-hidden="true" />
+            </div>
+            <div>
+              <p className="font-medium">Aucun aliment trouvé</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Essayez d’enlever un filtre ou de modifier la recherche.
+              </p>
+            </div>
+            {hasActiveFilters && (
+              <Button type="button" variant="outline" onClick={resetFilters}>
+                Enlever les filtres
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {filteredFoods.map((food) => (
+            <FoodCard key={food.id} food={food} store={store} />
+          ))}
+        </div>
+      )}
+
+      <Drawer open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+        <DrawerContent side="bottom" className="max-h-[88svh]">
+          <DrawerHeader>
+            <DrawerTitle>Filtres</DrawerTitle>
+            <DrawerDescription>Croisez les critères pour trouver le prochain aliment à tester.</DrawerDescription>
+          </DrawerHeader>
+          <ScrollArea className="max-h-[66svh] pr-3">
+            <div className="flex flex-col gap-5">
+              <FilterSection title="Catégorie">
+                <div className="grid grid-cols-2 gap-2">
+                  {(["Toutes", ...categories] as FoodCategoryFilter[]).map((category) => (
+                    <FilterChoice
+                      key={category}
+                      active={filters.category === category}
+                      count={categoryCounts.get(category) ?? 0}
+                      label={category}
+                      onClick={() => updateFilters({ category })}
+                    />
+                  ))}
+                </div>
+              </FilterSection>
+
+              <FilterSection title="Statut de test">
+                <div className="grid grid-cols-2 gap-2">
+                  {(Object.keys(statusFilterLabels) as FoodStatusFilter[]).map((status) => (
+                    <FilterChoice
+                      key={status}
+                      active={filters.status === status}
+                      label={statusFilterLabels[status]}
+                      onClick={() => updateFilters({ status })}
+                    />
+                  ))}
+                </div>
+              </FilterSection>
+
+              <FilterSection title="Introduction">
+                <div className="grid grid-cols-3 gap-2">
+                  {(Object.keys(introductionFilterLabels) as IntroductionFilter[]).map((introduction) => (
+                    <FilterChoice
+                      key={introduction}
+                      active={filters.introduction === introduction}
+                      label={introductionFilterLabels[introduction]}
+                      onClick={() => updateFilters({ introduction })}
+                    />
+                  ))}
+                </div>
+              </FilterSection>
+
+              <FilterSection title="Options">
+                <div className="grid grid-cols-1 gap-2">
+                  <FilterToggle active={filters.seasonOnly} count={presetCounts.season} label="De saison" onClick={() => updateFilters({ seasonOnly: !filters.seasonOnly })} />
+                  <FilterToggle active={filters.allergensOnly} count={presetCounts.allergens} label="Allergènes" onClick={() => updateFilters({ allergensOnly: !filters.allergensOnly })} />
+                  <FilterToggle active={filters.popoteOnly} count={presetCounts.popote} label="Popote" onClick={() => updateFilters({ popoteOnly: !filters.popoteOnly })} />
+                </div>
+              </FilterSection>
+            </div>
+          </ScrollArea>
+          <div className="grid grid-cols-2 gap-2 border-t p-4">
+            <Button type="button" variant="outline" onClick={resetFilters} disabled={!hasActiveFilters}>
+              Réinitialiser
+            </Button>
+            <Button type="button" onClick={() => setIsFiltersOpen(false)}>
+              Voir {filteredFoods.length}
+            </Button>
+          </div>
+        </DrawerContent>
+      </Drawer>
     </>
+  )
+}
+
+function QuickFilterButton({
+  active,
+  count,
+  label,
+  onClick,
+}: {
+  active: boolean
+  count: number
+  label: string
+  onClick: () => void
+}) {
+  return (
+    <Button
+      type="button"
+      variant={active ? "default" : "outline"}
+      className={cn("h-auto justify-between px-3 py-2", active && "shadow-sm")}
+      onClick={onClick}
+    >
+      <span>{label}</span>
+      <span className={cn("rounded-full px-2 py-0.5 text-xs", active ? "bg-background/20" : "bg-muted text-muted-foreground")}>
+        {count}
+      </span>
+    </Button>
+  )
+}
+
+function FilterSection({ children, title }: { children: ReactNode; title: string }) {
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="text-sm font-semibold text-muted-foreground">{title}</h2>
+      {children}
+    </section>
+  )
+}
+
+function FilterChoice({
+  active,
+  count,
+  label,
+  onClick,
+}: {
+  active: boolean
+  count?: number
+  label: string
+  onClick: () => void
+}) {
+  return (
+    <Button
+      type="button"
+      variant={active ? "default" : "outline"}
+      className="h-auto justify-between whitespace-normal px-3 py-2 text-left"
+      onClick={onClick}
+    >
+      <span className="min-w-0 truncate">{label}</span>
+      {typeof count === "number" && (
+        <span className={cn("rounded-full px-2 py-0.5 text-xs", active ? "bg-background/20" : "bg-muted text-muted-foreground")}>
+          {count}
+        </span>
+      )}
+    </Button>
+  )
+}
+
+function FilterToggle({
+  active,
+  count,
+  label,
+  onClick,
+}: {
+  active: boolean
+  count: number
+  label: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        "flex items-center justify-between gap-3 rounded-md border bg-card px-3 py-3 text-left text-sm font-medium transition-colors",
+        active && "border-primary bg-primary/10 text-primary",
+      )}
+      onClick={onClick}
+    >
+      <span>{label}</span>
+      <span className="flex items-center gap-2">
+        <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{count}</span>
+        <span className={cn("size-5 rounded-full border", active && "border-primary bg-primary shadow-inner")} aria-hidden="true" />
+      </span>
+    </button>
   )
 }
 

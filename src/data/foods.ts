@@ -5,7 +5,6 @@ export type FoodCategory =
   | "Protéines"
   | "Matières grasses"
   | "Produits laitiers"
-  | "Allergènes"
   | "Divers"
 
 export type RecommendationLevel = "conseillé" | "possible"
@@ -382,6 +381,5 @@ export const categories: FoodCategory[] = [
   "Protéines",
   "Matières grasses",
   "Produits laitiers",
-  "Allergènes",
   "Divers",
 ]
