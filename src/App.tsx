@@ -517,13 +517,13 @@ function FoodsPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
       )}
 
       <Drawer open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
-        <DrawerContent side="bottom" className="max-h-[88svh]">
-          <DrawerHeader>
+        <DrawerContent side="bottom" className="flex h-[88svh] max-h-[88svh] flex-col gap-0 p-0">
+          <DrawerHeader className="shrink-0 px-6 pb-4 pt-6">
             <DrawerTitle>Filtres</DrawerTitle>
             <DrawerDescription>Croisez les critères pour trouver le prochain aliment à tester.</DrawerDescription>
           </DrawerHeader>
-          <ScrollArea className="max-h-[66svh] pr-3">
-            <div className="flex flex-col gap-5">
+          <ScrollArea className="min-h-0 flex-1 px-6">
+            <div className="flex flex-col gap-5 pb-6 pr-3">
               <FilterSection title="Catégorie">
                 <div className="grid grid-cols-2 gap-2">
                   {(["Toutes", ...categories] as FoodCategoryFilter[]).map((category) => (
@@ -573,7 +573,7 @@ function FoodsPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
               </FilterSection>
             </div>
           </ScrollArea>
-          <div className="grid grid-cols-2 gap-2 border-t p-4">
+          <div className="grid shrink-0 grid-cols-2 gap-2 border-t bg-background p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
             <Button type="button" variant="outline" onClick={resetFilters} disabled={!hasActiveFilters}>
               Réinitialiser
             </Button>
@@ -990,15 +990,15 @@ function FoodDetail({
         {compact ? <ChevronRight aria-hidden="true" /> : <><Plus data-icon="inline-start" aria-hidden="true" /> Tester</>}
       </Button>
       <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerContent side="bottom" className="max-h-[90svh]">
-          <DrawerHeader>
+        <DrawerContent side="bottom" className="flex h-[90svh] max-h-[90svh] flex-col gap-0 p-0">
+          <DrawerHeader className="shrink-0 px-6 pb-4 pt-6">
             <DrawerTitle>{food.emoji} {food.name}</DrawerTitle>
             <DrawerDescription>
               {food.category} · adapté dès {food.minAgeMonths} mois
             </DrawerDescription>
           </DrawerHeader>
-          <ScrollArea className="max-h-[68svh] pr-3">
-            <div className="flex flex-col gap-5">
+          <ScrollArea className="min-h-0 flex-1 px-6">
+            <div className="flex flex-col gap-5 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pr-3">
               <div className="flex flex-wrap gap-2">
                 <StatusBadge status={status} />
                 {isInSeason(food) && <SeasonBadge />}
