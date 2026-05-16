@@ -52,7 +52,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { Toaster } from "@/components/ui/sonner"
 import { categories, foods, type Food } from "@/data/foods"
@@ -966,7 +965,6 @@ function FoodDetail({
   const [isPopote, setIsPopote] = useState(false)
   const [reaction, setReaction] = useState<Reaction>("aucune réaction")
   const [note, setNote] = useState("")
-  const tests = store.tests.filter((test) => test.foodId === food.id)
   const status = getStatus(food.id, store.latestByFood)
 
   async function saveTest() {
@@ -1008,76 +1006,54 @@ function FoodDetail({
               </div>
               <p className="rounded-md bg-muted p-4 text-sm leading-6">{food.preparation}</p>
               <Separator />
-              <Tabs defaultValue="test">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="test">Test</TabsTrigger>
-                  <TabsTrigger value="history">Historique</TabsTrigger>
-                </TabsList>
-                <TabsContent value="test" className="flex flex-col gap-4">
-                  <label className="flex flex-col gap-2 text-sm font-medium">
-                    Date
-                    <Input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
-                  </label>
-                  <label className="flex flex-col gap-2 text-sm font-medium">
-                    Réaction
-                    <Select value={reaction} onValueChange={(value) => setReaction(value as Reaction)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          {reactions.map((item) => (
-                            <SelectItem key={item} value={item}>
-                              {item}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </label>
-                  {food.isPopoteEligible && (
-                    <label className="flex items-center justify-between gap-3 rounded-md border bg-card p-3 text-sm font-medium">
-                      <span className="flex min-w-0 items-center gap-2">
-                        <PackageCheck aria-hidden="true" />
-                        Testé via une gourde Popote
-                      </span>
-                      <input
-                        className="size-5 accent-primary"
-                        type="checkbox"
-                        checked={isPopote}
-                        onChange={(event) => setIsPopote(event.target.checked)}
-                      />
-                    </label>
-                  )}
-                  <label className="flex flex-col gap-2 text-sm font-medium">
-                    Note libre
-                    <Textarea
-                      placeholder="Quantité, texture, contexte du repas..."
-                      value={note}
-                      onChange={(event) => setNote(event.target.value)}
+              <div className="flex flex-col gap-4">
+                <label className="flex flex-col gap-2 text-sm font-medium">
+                  Date
+                  <Input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+                </label>
+                <label className="flex flex-col gap-2 text-sm font-medium">
+                  Réaction
+                  <Select value={reaction} onValueChange={(value) => setReaction(value as Reaction)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {reactions.map((item) => (
+                          <SelectItem key={item} value={item}>
+                            {item}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </label>
+                {food.isPopoteEligible && (
+                  <label className="flex items-center justify-between gap-3 rounded-md border bg-card p-3 text-sm font-medium">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <PackageCheck aria-hidden="true" />
+                      Testé via une gourde Popote
+                    </span>
+                    <input
+                      className="size-5 accent-primary"
+                      type="checkbox"
+                      checked={isPopote}
+                      onChange={(event) => setIsPopote(event.target.checked)}
                     />
                   </label>
-                  <Button type="button" onClick={saveTest}>
-                    Marquer comme testé
-                  </Button>
-                </TabsContent>
-                <TabsContent value="history" className="flex flex-col gap-3">
-                  {tests.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Aucun test enregistré pour cet aliment.</p>
-                  ) : (
-                    tests.map((test) => (
-                      <div key={test.id} className="rounded-md border bg-card p-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="font-medium">{test.reaction}</p>
-                          <p className="text-xs text-muted-foreground">{new Date(test.date).toLocaleDateString("fr-FR")}</p>
-                        </div>
-                        {test.isPopote && <div className="mt-2"><PopoteBadge /></div>}
-                        {test.note && <p className="mt-2 text-sm text-muted-foreground">{test.note}</p>}
-                      </div>
-                    ))
-                  )}
-                </TabsContent>
-              </Tabs>
+                )}
+                <label className="flex flex-col gap-2 text-sm font-medium">
+                  Note libre
+                  <Textarea
+                    placeholder="Quantité, texture, contexte du repas..."
+                    value={note}
+                    onChange={(event) => setNote(event.target.value)}
+                  />
+                </label>
+                <Button type="button" onClick={saveTest}>
+                  Marquer comme testé
+                </Button>
+              </div>
               <Disclaimer compact />
             </div>
           </ScrollArea>
