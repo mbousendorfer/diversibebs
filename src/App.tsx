@@ -1,4 +1,4 @@
-import { memo, type ReactNode, useEffect, useMemo, useRef, useState } from "react"
+import { memo, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react"
 import { motion } from "framer-motion"
 import { NavLink, Route, Routes } from "react-router-dom"
 import {
@@ -1278,7 +1278,25 @@ function FoodTestDrawer({
   const [isPopote, setIsPopote] = useState(false)
   const [note, setNote] = useState("")
   const [showNote, setShowNote] = useState(false)
+  const titleId = useId()
   const status = getStatus(food.id, store.latestByFood)
+
+  useEffect(() => {
+    if (!open) return
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onOpenChange(false)
+    }
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    window.addEventListener("keydown", handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [onOpenChange, open])
 
   async function saveTest() {
     await store.addTest({ foodId: food.id, date, isPopote: food.isPopoteEligible && isPopote, reaction: "aucune réaction", note })
@@ -1289,83 +1307,101 @@ function FoodTestDrawer({
     setShowNote(false)
   }
 
+  if (!open) return null
+
   return (
     <>
-      <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent
-          side="bottom"
-          className="flex max-h-[82svh] min-h-[58svh] flex-col gap-0 overflow-hidden p-0"
-          onOpenAutoFocus={(event) => event.preventDefault()}
-        >
-          <DrawerHeader className="shrink-0 px-5 pb-3 pt-5">
-            <DrawerTitle>{food.emoji} {food.name}</DrawerTitle>
-            <DrawerDescription>
-              {food.category} · {ageSummary(food)}
-            </DrawerDescription>
-          </DrawerHeader>
-          <ScrollArea className="min-h-0 flex-1 px-5">
-            <div className="flex min-w-0 flex-col gap-4 pb-4 pr-2">
-              <div className="flex flex-wrap gap-2">
-                <StatusBadge status={status} />
-                {isInSeason(food) && <SeasonBadge />}
-                <IntroductionBadge level={food.level} />
-                {food.isPopoteEligible && <PopoteBadge label="Popote possible" />}
-                <Badge variant="outline" className="h-8 max-w-full gap-1.5 truncate px-3">
-                  {monthNames(food.seasonMonths)}
-                </Badge>
-              </div>
-              <p className="rounded-md bg-muted p-4 text-sm leading-6">{food.preparation}</p>
-              <Separator />
-              <div className="flex min-w-0 flex-col gap-4">
-                <label className="flex min-w-0 flex-col gap-2 text-sm font-medium">
-                  Date
-                  <Input
-                    className="min-w-0 max-w-full"
-                    type="date"
-                    value={date}
-                    onChange={(event) => setDate(event.target.value)}
+      <div
+        className="sheet-overlay fixed inset-0 z-50 bg-foreground/30 backdrop-blur-sm"
+        data-state="open"
+        onClick={() => onOpenChange(false)}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="sheet-content fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[82svh] min-h-[58svh] w-full max-w-xl flex-col gap-0 overflow-hidden rounded-t-lg border-t bg-background shadow-lg"
+        data-side="bottom"
+        data-state="open"
+      >
+        <div className="relative shrink-0 px-5 pb-3 pt-5">
+          <h2 id={titleId} className="pr-10 text-lg font-semibold text-foreground">
+            {food.emoji} {food.name}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {food.category} · {ageSummary(food)}
+          </p>
+          <button
+            type="button"
+            className="absolute right-4 top-4 inline-flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={() => onOpenChange(false)}
+            aria-label="Fermer"
+          >
+            <X className="size-5" aria-hidden="true" />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-5">
+          <div className="flex min-w-0 flex-col gap-4 pb-4">
+            <div className="flex flex-wrap gap-2">
+              <StatusBadge status={status} />
+              {isInSeason(food) && <SeasonBadge />}
+              <IntroductionBadge level={food.level} />
+              {food.isPopoteEligible && <PopoteBadge label="Popote possible" />}
+              <Badge variant="outline" className="h-8 max-w-full gap-1.5 truncate px-3">
+                {monthNames(food.seasonMonths)}
+              </Badge>
+            </div>
+            <p className="rounded-md bg-muted p-4 text-sm leading-6">{food.preparation}</p>
+            <Separator />
+            <div className="flex min-w-0 flex-col gap-4">
+              <label className="flex min-w-0 flex-col gap-2 text-sm font-medium">
+                Date
+                <Input
+                  className="min-w-0 max-w-full"
+                  type="date"
+                  value={date}
+                  onChange={(event) => setDate(event.target.value)}
+                />
+              </label>
+              {food.isPopoteEligible && (
+                <label className="flex items-center justify-between gap-3 rounded-md border bg-card p-3 text-sm font-medium">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <PackageCheck aria-hidden="true" />
+                    Testé via une gourde Popote
+                  </span>
+                  <input
+                    className="size-5 accent-primary"
+                    type="checkbox"
+                    checked={isPopote}
+                    onChange={(event) => setIsPopote(event.target.checked)}
                   />
                 </label>
-                {food.isPopoteEligible && (
-                  <label className="flex items-center justify-between gap-3 rounded-md border bg-card p-3 text-sm font-medium">
-                    <span className="flex min-w-0 items-center gap-2">
-                      <PackageCheck aria-hidden="true" />
-                      Testé via une gourde Popote
-                    </span>
-                    <input
-                      className="size-5 accent-primary"
-                      type="checkbox"
-                      checked={isPopote}
-                      onChange={(event) => setIsPopote(event.target.checked)}
-                    />
-                  </label>
-                )}
-                {showNote ? (
-                  <label className="flex flex-col gap-2 text-sm font-medium">
-                    Note
-                    <Textarea
-                      autoFocus
-                      placeholder="Quantité, texture, contexte du repas..."
-                      value={note}
-                      onChange={(event) => setNote(event.target.value)}
-                    />
-                  </label>
-                ) : (
-                  <Button type="button" variant="outline" onClick={() => setShowNote(true)}>
-                    <Plus data-icon="inline-start" aria-hidden="true" />
-                    Ajouter une note
-                  </Button>
-                )}
-              </div>
+              )}
+              {showNote ? (
+                <label className="flex flex-col gap-2 text-sm font-medium">
+                  Note
+                  <Textarea
+                    autoFocus
+                    placeholder="Quantité, texture, contexte du repas..."
+                    value={note}
+                    onChange={(event) => setNote(event.target.value)}
+                  />
+                </label>
+              ) : (
+                <Button type="button" variant="outline" onClick={() => setShowNote(true)}>
+                  <Plus data-icon="inline-start" aria-hidden="true" />
+                  Ajouter une note
+                </Button>
+              )}
             </div>
-          </ScrollArea>
-          <div className="shrink-0 border-t bg-background/95 p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] backdrop-blur">
-            <Button type="button" className="h-12 w-full" onClick={saveTest}>
-              Marquer comme testé
-            </Button>
           </div>
-        </DrawerContent>
-      </Drawer>
+        </div>
+        <div className="shrink-0 border-t bg-background/95 p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] backdrop-blur">
+          <Button type="button" className="h-12 w-full" onClick={saveTest}>
+            Marquer comme testé
+          </Button>
+        </div>
+      </div>
     </>
   )
 }
