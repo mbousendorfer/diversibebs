@@ -1,5 +1,4 @@
-import { memo, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react"
-import { motion } from "framer-motion"
+import { lazy, memo, Suspense, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react"
 import { NavLink, Route, Routes } from "react-router-dom"
 import {
   Baby,
@@ -32,7 +31,6 @@ import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { DiscoveriesPage } from "@/components/DiscoveriesPage"
 import { InstallPrompt } from "@/components/InstallPrompt"
 import { PwaStatus } from "@/components/PwaStatus"
 import {
@@ -84,6 +82,10 @@ import { cn } from "@/lib/utils"
 const disclaimer =
   "Cette application est un outil personnel de suivi. Elle ne remplace pas les conseils d’un pédiatre ou professionnel de santé."
 
+const DiscoveriesPage = lazy(() =>
+  import("@/components/DiscoveriesPage").then((module) => ({ default: module.DiscoveriesPage })),
+)
+
 type FoodStatusFilter = "tous" | "non-testes" | "testes" | "reaction"
 type IntroductionFilter = "toutes" | "conseillee" | "possible"
 
@@ -120,19 +122,6 @@ const introductionFilterLabels: Record<IntroductionFilter, string> = {
   possible: "Possible",
 }
 
-const listMotion = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.04 },
-  },
-}
-
-const listItemMotion = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0 },
-}
-
 type ThemeMode = "light" | "system" | "dark"
 
 const themeStorageKey = "diversibebs-theme-v1"
@@ -164,13 +153,33 @@ function App() {
           <Route path="/foods" element={<FoodsPage store={store} />} />
           <Route path="/week" element={<WeekPage suggestions={suggestions} store={store} />} />
           <Route path="/history" element={<HistoryPage store={store} />} />
-          <Route path="/discoveries" element={<DiscoveriesPage tests={store.tests} badgeUnlockDates={badgeUnlockDates} />} />
+          <Route
+            path="/discoveries"
+            element={
+              <Suspense fallback={<PageLoading label="Découvertes" />}>
+                <DiscoveriesPage tests={store.tests} badgeUnlockDates={badgeUnlockDates} />
+              </Suspense>
+            }
+          />
           <Route path="/settings" element={<SettingsPage store={store} theme={theme} setTheme={setTheme} />} />
         </Routes>
       </main>
       <BottomNav />
       <Toaster />
     </div>
+  )
+}
+
+function PageLoading({ label }: { label: string }) {
+  return (
+    <>
+      <Header eyebrow="Chargement" title={label} />
+      <Card className="bg-card/90">
+        <CardContent className="py-8 text-sm text-muted-foreground" aria-live="polite">
+          Préparation de la page...
+        </CardContent>
+      </Card>
+    </>
   )
 }
 
@@ -306,17 +315,17 @@ function FamilySetup({ store }: { store: ReturnType<typeof useBabyStore> }) {
 
 function AnimatedList({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <motion.div variants={listMotion} initial="hidden" animate="show" className={className}>
+    <div className={cn("stagger-list", className)}>
       {children}
-    </motion.div>
+    </div>
   )
 }
 
 function AnimatedListItem({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <motion.div variants={listItemMotion} className={className}>
+    <div className={cn("stagger-list-item", className)}>
       {children}
-    </motion.div>
+    </div>
   )
 }
 

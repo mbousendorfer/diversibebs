@@ -172,6 +172,37 @@
     animation: sheet-slide-down 170ms ease-in both;
   }
 
+  @keyframes list-item-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.625rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .stagger-list > .stagger-list-item {
+    animation: list-item-in 220ms ease-out both;
+  }
+
+  .stagger-list > .stagger-list-item:nth-child(2) {
+    animation-delay: 35ms;
+  }
+
+  .stagger-list > .stagger-list-item:nth-child(3) {
+    animation-delay: 70ms;
+  }
+
+  .stagger-list > .stagger-list-item:nth-child(4) {
+    animation-delay: 105ms;
+  }
+
+  .stagger-list > .stagger-list-item:nth-child(n + 5) {
+    animation-delay: 140ms;
+  }
+
   .safe-shell {
     min-height: 100dvh;
     padding-top: env(safe-area-inset-top);

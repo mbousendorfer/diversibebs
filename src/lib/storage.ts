@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 
-import { isSupabaseConfigured, supabase } from "@/lib/supabase"
+import { getSupabase, isSupabaseConfigured } from "@/lib/supabase"
 
 export type Reaction = "aucune réaction" | "digestion difficile" | "rougeur" | "vomissement" | "autre"
 
@@ -250,7 +250,7 @@ export function useBabyStore() {
   }, [familySession])
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase || !familySession) return
+    if (!isSupabaseConfigured || !familySession) return
 
     let isCancelled = false
     const familyCodeHash = familySession.familyCodeHash
@@ -259,7 +259,10 @@ export function useBabyStore() {
       setSyncStatus("loading")
       setSyncError(null)
 
-      const { data, error } = await supabase!.rpc("get_baby_family_state", {
+      const client = await getSupabase()
+      if (!client || isCancelled) return
+
+      const { data, error } = await client.rpc("get_baby_family_state", {
         p_family_code_hash: familyCodeHash,
       })
 
@@ -297,7 +300,7 @@ export function useBabyStore() {
   }, [state.tests])
 
   async function connectFamily(code: string) {
-    if (!isSupabaseConfigured || !supabase) {
+    if (!isSupabaseConfigured) {
       setSyncStatus("not-configured")
       setSyncError("Supabase n’est pas encore configuré.")
       return false
@@ -317,10 +320,13 @@ export function useBabyStore() {
   }
 
   async function refresh() {
-    if (!isSupabaseConfigured || !supabase || !familySession) return
+    if (!isSupabaseConfigured || !familySession) return
 
     setSyncStatus("loading")
-    const { data, error } = await supabase.rpc("get_baby_family_state", {
+    const client = await getSupabase()
+    if (!client) return
+
+    const { data, error } = await client.rpc("get_baby_family_state", {
       p_family_code_hash: familySession.familyCodeHash,
     })
 
@@ -351,10 +357,13 @@ export function useBabyStore() {
       profile,
     }))
 
-    if (!isSupabaseConfigured || !supabase || !familySession) return true
+    if (!isSupabaseConfigured || !familySession) return true
 
     setSyncStatus("syncing")
-    const { error } = await supabase.rpc("upsert_baby_profile", {
+    const client = await getSupabase()
+    if (!client) return true
+
+    const { error } = await client.rpc("upsert_baby_profile", {
       p_age_months: profile.ageMonths,
       p_birth_date: profile.birthDate || null,
       p_child_name: profile.childName || null,
@@ -384,10 +393,13 @@ export function useBabyStore() {
       tests: sortTests([nextTest, ...current.tests]),
     }))
 
-    if (!isSupabaseConfigured || !supabase || !familySession) return
+    if (!isSupabaseConfigured || !familySession) return
 
     setSyncStatus("syncing")
-    const { error } = await supabase.rpc("add_baby_food_test", {
+    const client = await getSupabase()
+    if (!client) return
+
+    const { error } = await client.rpc("add_baby_food_test", {
       p_date: nextTest.date,
       p_family_code_hash: familySession.familyCodeHash,
       p_food_id: nextTest.foodId,
@@ -415,10 +427,13 @@ export function useBabyStore() {
       tests: sortTests(current.tests.map((test) => (test.id === testId ? testWithId : test))),
     }))
 
-    if (!isSupabaseConfigured || !supabase || !familySession) return
+    if (!isSupabaseConfigured || !familySession) return
 
     setSyncStatus("syncing")
-    const { error } = await supabase.rpc("update_baby_food_test", {
+    const client = await getSupabase()
+    if (!client) return
+
+    const { error } = await client.rpc("update_baby_food_test", {
       p_date: testWithId.date,
       p_family_code_hash: familySession.familyCodeHash,
       p_id: testWithId.id,
@@ -443,10 +458,13 @@ export function useBabyStore() {
       tests: current.tests.filter((test) => test.id !== testId),
     }))
 
-    if (!isSupabaseConfigured || !supabase || !familySession) return
+    if (!isSupabaseConfigured || !familySession) return
 
     setSyncStatus("syncing")
-    const { error } = await supabase.rpc("delete_baby_food_test", {
+    const client = await getSupabase()
+    if (!client) return
+
+    const { error } = await client.rpc("delete_baby_food_test", {
       p_family_code_hash: familySession.familyCodeHash,
       p_id: testId,
     })
