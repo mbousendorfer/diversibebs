@@ -905,16 +905,6 @@ function WeekSuggestionCard({ food, store }: { food: Food; store: ReturnType<typ
 }
 
 function HistoryPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
-  async function removeTest(test: FoodTest) {
-    const food = foods.find((item) => item.id === test.foodId)
-    const label = food ? food.name : "cet aliment"
-
-    if (!window.confirm(`Retirer le test de ${label} ?`)) return
-
-    await store.deleteTest(test.id)
-    toast.success(`${label} retiré du journal`)
-  }
-
   return (
     <>
       <Header eyebrow="Journal" title="Historique" />
@@ -945,13 +935,7 @@ function HistoryPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
                       {test.isPopote && <PopoteBadge />}
                     </div>
                     {test.note && <p className="mt-2 rounded-md bg-muted p-3 text-sm">{test.note}</p>}
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <FoodDetail food={food} store={store} test={test} />
-                      <Button type="button" variant="outline" size="sm" onClick={() => removeTest(test)}>
-                        <Trash2 data-icon="inline-start" aria-hidden="true" />
-                        Retirer
-                      </Button>
-                    </div>
+                    <HistoryTestActions food={food} store={store} test={test} />
                   </div>
                 </AnimatedListItem>
               )
@@ -961,6 +945,44 @@ function HistoryPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
         </CardContent>
       </Card>
     </>
+  )
+}
+
+function HistoryTestActions({
+  food,
+  store,
+  test,
+}: {
+  food: Food
+  store: ReturnType<typeof useBabyStore>
+  test: FoodTest
+}) {
+  const [confirmingRemoval, setConfirmingRemoval] = useState(false)
+
+  async function removeTest() {
+    if (!confirmingRemoval) {
+      setConfirmingRemoval(true)
+      return
+    }
+
+    await store.deleteTest(test.id)
+    toast.success(`${food.name} retiré du journal`)
+  }
+
+  return (
+    <div className="mt-3 flex flex-wrap gap-2">
+      <FoodDetail food={food} store={store} test={test} />
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className={cn(confirmingRemoval && "border-destructive/50 text-destructive")}
+        onClick={removeTest}
+      >
+        <Trash2 data-icon="inline-start" aria-hidden="true" />
+        {confirmingRemoval ? "Confirmer" : "Retirer"}
+      </Button>
+    </div>
   )
 }
 
