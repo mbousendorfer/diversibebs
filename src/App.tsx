@@ -1,4 +1,5 @@
 import { type KeyboardEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react"
+import { motion } from "framer-motion"
 import { NavLink, Route, Routes } from "react-router-dom"
 import {
   Baby,
@@ -115,6 +116,19 @@ const introductionFilterLabels: Record<IntroductionFilter, string> = {
   toutes: "Toutes",
   conseillee: "Conseillée",
   possible: "Possible",
+}
+
+const listMotion = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.04 },
+  },
+}
+
+const listItemMotion = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0 },
 }
 
 type ThemeMode = "light" | "system" | "dark"
@@ -289,6 +303,22 @@ function FamilySetup({ store }: { store: ReturnType<typeof useBabyStore> }) {
   )
 }
 
+function AnimatedList({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <motion.div variants={listMotion} initial="hidden" animate="show" className={className}>
+      {children}
+    </motion.div>
+  )
+}
+
+function AnimatedListItem({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <motion.div variants={listItemMotion} className={className}>
+      {children}
+    </motion.div>
+  )
+}
+
 function HomePage({
   store,
   suggestions,
@@ -330,10 +360,14 @@ function HomePage({
             3 à 5 idées adaptées à l’âge, non testées, avec priorité à la saison.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          {suggestions.slice(0, 3).map((food) => (
-            <FoodRow key={food.id} food={food} store={store} inverted />
-          ))}
+        <CardContent>
+          <AnimatedList className="flex flex-col gap-3">
+            {suggestions.slice(0, 3).map((food) => (
+              <AnimatedListItem key={food.id}>
+                <FoodRow food={food} store={store} inverted />
+              </AnimatedListItem>
+            ))}
+          </AnimatedList>
         </CardContent>
       </Card>
 
@@ -345,12 +379,13 @@ function HomePage({
           {recentTests.length === 0 ? (
             <p className="text-sm text-muted-foreground">Aucun aliment marqué comme testé pour le moment.</p>
           ) : (
-            recentTests.map((test) => {
+            <AnimatedList className="flex flex-col gap-3">
+              {recentTests.map((test) => {
               const food = foods.find((item) => item.id === test.foodId)
               if (!food) return null
               return (
-                <div key={test.id} className="flex items-center justify-between gap-3">
-                <div>
+                <AnimatedListItem key={test.id} className="flex items-center justify-between gap-3">
+                  <div>
                     <p className="font-medium">{food.emoji} {food.name}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       <p className="text-sm text-muted-foreground">{new Date(test.date).toLocaleDateString("fr-FR")}</p>
@@ -358,9 +393,10 @@ function HomePage({
                     </div>
                   </div>
                   <StatusBadge status={test.reaction === "aucune réaction" ? "testé" : "réaction"} />
-                </div>
+                </AnimatedListItem>
               )
-            })
+            })}
+            </AnimatedList>
           )}
         </CardContent>
       </Card>
@@ -543,11 +579,13 @@ function FoodsPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
           </CardContent>
         </Card>
       ) : (
-        <div className="flex flex-col gap-3">
+        <AnimatedList className="flex flex-col gap-3">
           {filteredFoods.map((food) => (
-            <FoodCard key={food.id} food={food} store={store} />
+            <AnimatedListItem key={food.id}>
+              <FoodCard food={food} store={store} />
+            </AnimatedListItem>
           ))}
-        </div>
+        </AnimatedList>
       )}
 
       <Drawer open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
@@ -785,10 +823,14 @@ function WeekPage({
                 <CardTitle>Options aussi pertinentes</CardTitle>
                 <CardDescription>À garder sous la main si le repas du jour s’y prête mieux.</CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-2">
+              <CardContent>
+                <AnimatedList className="grid gap-2">
                 {alternatives.map((food) => (
-                  <FoodRow key={food.id} food={food} store={store} />
+                  <AnimatedListItem key={food.id}>
+                    <FoodRow food={food} store={store} />
+                  </AnimatedListItem>
                 ))}
+                </AnimatedList>
               </CardContent>
             </Card>
           )}
@@ -802,9 +844,13 @@ function WeekPage({
                 </div>
                 <Badge variant="secondary" className="h-8 px-3">{weeklyPlan.length} idées</Badge>
               </div>
-              {weeklyPlan.map((food) => (
-                <WeekSuggestionCard key={food.id} food={food} store={store} />
-              ))}
+              <AnimatedList className="flex flex-col gap-3">
+                {weeklyPlan.map((food) => (
+                  <AnimatedListItem key={food.id}>
+                    <WeekSuggestionCard food={food} store={store} />
+                  </AnimatedListItem>
+                ))}
+              </AnimatedList>
             </div>
           )}
         </>
@@ -863,11 +909,12 @@ function HistoryPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
           {store.tests.length === 0 ? (
             <p className="text-sm text-muted-foreground">Les tests ajoutés apparaîtront ici par ordre récent.</p>
           ) : (
-            store.tests.map((test, index) => {
+            <AnimatedList className="flex flex-col gap-4">
+              {store.tests.map((test, index) => {
               const food = foods.find((item) => item.id === test.foodId)
               if (!food) return null
               return (
-                <div key={test.id} className="grid grid-cols-[auto_1fr] gap-3">
+                <AnimatedListItem key={test.id} className="grid grid-cols-[auto_1fr] gap-3">
                   <div className="flex flex-col items-center">
                     <span className="mt-1 rounded-full bg-primary p-1.5 text-primary-foreground">
                       <Check aria-hidden="true" />
@@ -885,9 +932,10 @@ function HistoryPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
                     </div>
                     {test.note && <p className="mt-2 rounded-md bg-muted p-3 text-sm">{test.note}</p>}
                   </div>
-                </div>
+                </AnimatedListItem>
               )
-            })
+            })}
+            </AnimatedList>
           )}
         </CardContent>
       </Card>
