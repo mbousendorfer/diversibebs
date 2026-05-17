@@ -1225,20 +1225,14 @@ const FoodCard = memo(function FoodCard({ food, store }: { food: Food; store: Re
       >
         <Card className="pointer-events-none bg-card/90 transition-colors hover:border-primary/35 hover:bg-card">
           <CardHeader className="pb-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-secondary text-2xl" aria-hidden="true">
-                  {food.emoji}
-                </span>
-                <div className="min-w-0">
-                  <CardTitle className="truncate">{food.name}</CardTitle>
-                  <CardDescription>{food.category} · {ageSummary(food)}</CardDescription>
-                </div>
-              </div>
-              <span className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground shadow">
-                <Plus data-icon="inline-start" aria-hidden="true" />
-                {existingTest ? "Modifier" : "Tester"}
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-secondary text-2xl" aria-hidden="true">
+                {food.emoji}
               </span>
+              <div className="min-w-0">
+                <CardTitle className="truncate">{food.name}</CardTitle>
+                <CardDescription>{food.category} · {ageSummary(food)}</CardDescription>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
