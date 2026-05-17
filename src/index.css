@@ -77,7 +77,30 @@
   input,
   select,
   textarea {
+    box-sizing: border-box;
     font-size: 16px;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    inline-size: 100%;
+    max-inline-size: 100%;
+    min-inline-size: 0;
+    text-align: left;
+  }
+
+  input[type="date"]::-webkit-date-and-time-value {
+    min-inline-size: 0;
+    text-align: left;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    flex-shrink: 0;
+    margin-left: auto;
   }
 
   @media (prefers-reduced-motion: reduce) {

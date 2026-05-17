@@ -1045,7 +1045,7 @@ function SettingsPage({
           <CardTitle>Enfant</CardTitle>
           <CardDescription>Ces informations sont partagées dans l’espace famille.</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+        <CardContent className="flex min-w-0 flex-col gap-4">
           <label className="flex flex-col gap-2 text-sm font-medium">
             Nom de l’enfant
             <Input
@@ -1054,9 +1054,14 @@ function SettingsPage({
               onChange={(event) => setChildName(event.target.value)}
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm font-medium">
+          <label className="flex min-w-0 flex-col gap-2 text-sm font-medium">
             Date de naissance
-            <Input type="date" value={birthDate} onChange={(event) => setBirthDate(event.target.value)} />
+            <Input
+              className="min-w-0 max-w-full"
+              type="date"
+              value={birthDate}
+              onChange={(event) => setBirthDate(event.target.value)}
+            />
           </label>
           <Button
             type="button"
