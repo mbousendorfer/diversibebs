@@ -1294,7 +1294,11 @@ function FoodTestDrawer({
   return (
     <>
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent side="bottom" className="flex h-[90svh] max-h-[90svh] flex-col gap-0 p-0">
+        <DrawerContent
+          side="bottom"
+          className="flex h-[90svh] max-h-[90svh] flex-col gap-0 p-0"
+          onOpenAutoFocus={(event) => event.preventDefault()}
+        >
           <DrawerHeader className="shrink-0 px-6 pb-4 pt-6">
             <DrawerTitle>{food.emoji} {food.name}</DrawerTitle>
             <DrawerDescription>
