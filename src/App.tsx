@@ -980,9 +980,14 @@ function SettingsPage({
     if (!hasChildProfileChanges) return
 
     setIsSavingChildProfile(true)
-    await store.updateProfile({ childName: childName.trim(), birthDate })
+    const didSync = await store.updateProfile({ childName: childName.trim(), birthDate })
     setIsSavingChildProfile(false)
-    toast.success("Profil enfant sauvegardé")
+
+    if (didSync) {
+      toast.success("Profil enfant sauvegardé")
+    } else {
+      toast.warning("Sauvegardé sur cet appareil, synchro à vérifier")
+    }
   }
 
   function exportBackup() {

@@ -163,8 +163,14 @@ function sortTests(tests: FoodTest[]) {
   return [...tests].sort((a, b) => b.date.localeCompare(a.date))
 }
 
-function parseRemoteState(data: unknown): StoredState {
-  if (!data || typeof data !== "object") return initialState
+function remoteTextOrFallback(value: string | null | undefined, fallback: string) {
+  if (value === null || typeof value === "undefined") return fallback
+  if (value === "" && fallback) return fallback
+  return value
+}
+
+function parseRemoteState(data: unknown, fallbackState: StoredState = initialState): StoredState {
+  if (!data || typeof data !== "object") return fallbackState
 
   const value = data as {
     profile?: { ageMonths?: number; birthDate?: string | null; childName?: string | null }
@@ -180,9 +186,9 @@ function parseRemoteState(data: unknown): StoredState {
 
   return normalizeStoredState({
     profile: {
-      ageMonths: value.profile?.ageMonths ?? initialState.profile.ageMonths,
-      birthDate: value.profile?.birthDate ?? "",
-      childName: value.profile?.childName ?? "",
+      ageMonths: value.profile?.ageMonths ?? fallbackState.profile.ageMonths,
+      birthDate: remoteTextOrFallback(value.profile?.birthDate, fallbackState.profile.birthDate),
+      childName: remoteTextOrFallback(value.profile?.childName, fallbackState.profile.childName),
     },
     tests: (value.tests ?? []).map((test) => ({
       id: test.id ?? "",
@@ -265,7 +271,7 @@ export function useBabyStore() {
         return
       }
 
-      setState(parseRemoteState(data))
+      setState((current) => parseRemoteState(data, current))
       setSyncStatus("idle")
     }
 
@@ -324,7 +330,7 @@ export function useBabyStore() {
       return
     }
 
-    setState(parseRemoteState(data))
+    setState((current) => parseRemoteState(data, current))
     setSyncStatus("idle")
     setSyncError(null)
   }
@@ -345,7 +351,7 @@ export function useBabyStore() {
       profile,
     }))
 
-    if (!isSupabaseConfigured || !supabase || !familySession) return
+    if (!isSupabaseConfigured || !supabase || !familySession) return true
 
     setSyncStatus("syncing")
     const { error } = await supabase.rpc("upsert_baby_profile", {
@@ -358,11 +364,12 @@ export function useBabyStore() {
     if (error) {
       setSyncStatus(navigator.onLine ? "error" : "offline")
       setSyncError(error.message)
-      return
+      return false
     }
 
     setSyncStatus("idle")
     setSyncError(null)
+    return true
   }
 
   async function updateAge(ageMonths: number) {
