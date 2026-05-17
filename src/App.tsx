@@ -906,9 +906,12 @@ function SettingsPage({
 }) {
   const [childName, setChildName] = useState(store.profile.childName)
   const [birthDate, setBirthDate] = useState(store.profile.birthDate)
+  const [isSavingChildProfile, setIsSavingChildProfile] = useState(false)
   const importInputRef = useRef<HTMLInputElement>(null)
   const familyCodeLabel = store.familySession?.familyCodeLabel ?? ""
   const shouldShowSyncStatus = ["loading", "syncing", "offline", "error"].includes(store.syncStatus)
+  const hasChildProfileChanges =
+    childName.trim() !== store.profile.childName || birthDate !== store.profile.birthDate
 
   useEffect(() => {
     setChildName(store.profile.childName)
@@ -925,14 +928,13 @@ function SettingsPage({
     toast.success("Code famille copié")
   }
 
-  function saveName() {
-    if (childName.trim() === store.profile.childName) return
-    void store.updateProfile({ childName: childName.trim() })
-  }
+  async function saveChildProfile() {
+    if (!hasChildProfileChanges) return
 
-  function saveBirthDate(value: string) {
-    setBirthDate(value)
-    void store.updateProfile({ birthDate: value })
+    setIsSavingChildProfile(true)
+    await store.updateProfile({ childName: childName.trim(), birthDate })
+    setIsSavingChildProfile(false)
+    toast.success("Profil enfant sauvegardé")
   }
 
   function exportBackup() {
@@ -996,14 +998,21 @@ function SettingsPage({
             <Input
               placeholder="Ex. Alba"
               value={childName}
-              onBlur={saveName}
               onChange={(event) => setChildName(event.target.value)}
             />
           </label>
           <label className="flex flex-col gap-2 text-sm font-medium">
             Date de naissance
-            <Input type="date" value={birthDate} onChange={(event) => saveBirthDate(event.target.value)} />
+            <Input type="date" value={birthDate} onChange={(event) => setBirthDate(event.target.value)} />
           </label>
+          <Button
+            type="button"
+            onClick={() => void saveChildProfile()}
+            disabled={!hasChildProfileChanges || isSavingChildProfile}
+          >
+            <Check data-icon="inline-start" aria-hidden="true" />
+            {isSavingChildProfile ? "Sauvegarde..." : "Sauvegarder"}
+          </Button>
         </CardContent>
       </Card>
 
