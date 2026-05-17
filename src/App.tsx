@@ -165,7 +165,6 @@ function App() {
           <Route path="/discoveries" element={<DiscoveriesPage tests={store.tests} badgeUnlockDates={badgeUnlockDates} />} />
           <Route path="/settings" element={<SettingsPage store={store} theme={theme} setTheme={setTheme} />} />
         </Routes>
-        <InstallPrompt />
       </main>
       <BottomNav />
       <Toaster />
@@ -1102,6 +1101,8 @@ function SettingsPage({
           </div>
         </CardContent>
       </Card>
+
+      <InstallPrompt />
 
       <Card className="bg-card/90">
         <CardHeader>
