@@ -210,7 +210,7 @@ function parseRemoteState(data: unknown, fallbackState: StoredState = initialSta
   })
 }
 
-function parseBackupPayload(payload: unknown) {
+export function parseBackupPayload(payload: unknown) {
   if (!payload || typeof payload !== "object") {
     throw new Error("Le fichier sélectionné n’est pas une sauvegarde Diversibebs valide.")
   }
@@ -528,9 +528,17 @@ export function useBabyStore() {
     setSyncStatus(isSupabaseConfigured ? "idle" : "not-configured")
   }
 
+  function clearDeviceData() {
+    setState(initialState)
+    setFamilySession(null)
+    setSyncError(null)
+    setSyncStatus(isSupabaseConfigured ? "idle" : "not-configured")
+  }
+
   return {
     ...state,
     addTest,
+    clearDeviceData,
     connectFamily,
     deleteTest,
     disconnectFamily,

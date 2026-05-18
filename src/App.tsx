@@ -72,6 +72,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Toaster } from "@/components/ui/sonner"
 import { categories, foods, type Food } from "@/data/foods"
 import { foodSourceReferences, reviewedAt, sourcesByTheme } from "@/data/sources"
+import { backupFileName, backupToJson, journalCsvFileName, testsToCsv } from "@/lib/backup"
 import {
   getStatus,
   ageSummary,
@@ -326,6 +327,17 @@ function testDateTimeLabel(test: FoodTest) {
   const time = mealTimeLabel(test.mealTime)
 
   return time ? `${date} · ${time}` : date
+}
+
+function downloadTextFile(content: string, fileName: string, type: string) {
+  const blob = new Blob([content], { type })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+
+  link.href = url
+  link.download = fileName
+  link.click()
+  URL.revokeObjectURL(url)
 }
 
 function useBadgeUnlockDates(
@@ -1157,17 +1169,13 @@ function SettingsPage({
 
   function exportBackup() {
     const backup = store.exportBackup()
-    const backupJson = JSON.stringify(backup, null, 2)
-    const blob = new Blob([backupJson], { type: "application/json" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    const date = new Date().toISOString().slice(0, 10)
-
-    link.href = url
-    link.download = `diversibebs-sauvegarde-${date}.json`
-    link.click()
-    URL.revokeObjectURL(url)
+    downloadTextFile(backupToJson(backup), backupFileName(), "application/json")
     toast.success("Sauvegarde exportée")
+  }
+
+  function exportJournalCsv() {
+    downloadTextFile(testsToCsv(store.tests), journalCsvFileName(), "text/csv;charset=utf-8")
+    toast.success("Journal exporté")
   }
 
   async function importBackup(event: React.ChangeEvent<HTMLInputElement>) {
@@ -1178,11 +1186,12 @@ function SettingsPage({
       const text = await file.text()
       const parsed = JSON.parse(text)
       const confirmed = window.confirm(
-        "Importer cette sauvegarde remplacera les données locales de cet appareil. Continuer ?",
+        "Importer cette sauvegarde remplacera le suivi sur cet appareil. Une sauvegarde de sécurité va d’abord être téléchargée. Continuer ?",
       )
 
       if (!confirmed) return
 
+      downloadTextFile(backupToJson(store.exportBackup()), backupFileName(), "application/json")
       store.importBackup(parsed)
       toast.success("Sauvegarde importée")
     } catch (error) {
@@ -1190,6 +1199,18 @@ function SettingsPage({
     } finally {
       event.target.value = ""
     }
+  }
+
+  function clearDeviceData() {
+    const confirmed = window.confirm(
+      "Supprimer le suivi de cet appareil ? Les données partagées ne sont pas supprimées pour les autres appareils.",
+    )
+
+    if (!confirmed) return
+
+    downloadTextFile(backupToJson(store.exportBackup()), backupFileName(), "application/json")
+    store.clearDeviceData()
+    toast.success("Données supprimées de cet appareil")
   }
 
   return (
@@ -1310,10 +1331,14 @@ function SettingsPage({
           </button>
         </SettingsSection>
 
-        <SettingsSection description="Gardez une copie ou migrez vers un autre appareil." title="Sauvegarde locale">
+        <SettingsSection description="Gardez une copie, restaurez le suivi ou préparez un rendez-vous." title="Sauvegarde">
           <Button type="button" variant="outline" className="h-11 justify-start" onClick={exportBackup}>
             <Download data-icon="inline-start" aria-hidden="true" />
             Exporter les données
+          </Button>
+          <Button type="button" variant="outline" className="h-11 justify-start" onClick={exportJournalCsv}>
+            <NotebookText data-icon="inline-start" aria-hidden="true" />
+            Exporter le journal CSV
           </Button>
           <input
             ref={importInputRef}
@@ -1326,8 +1351,12 @@ function SettingsPage({
             <Upload data-icon="inline-start" aria-hidden="true" />
             Importer une sauvegarde
           </Button>
+          <Button type="button" variant="ghost" className="h-11 justify-start text-destructive" onClick={clearDeviceData}>
+            <Trash2 data-icon="inline-start" aria-hidden="true" />
+            Supprimer de cet appareil
+          </Button>
           <p className="text-xs leading-5 text-muted-foreground">
-            L’import demande confirmation avant de remplacer les données locales.
+            L’import demande confirmation et télécharge une sauvegarde de sécurité avant remplacement.
           </p>
         </SettingsSection>
 
