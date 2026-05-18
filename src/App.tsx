@@ -1,6 +1,6 @@
 import { createContext, lazy, memo, Suspense, type ReactNode, useContext, useEffect, useId, useMemo, useRef, useState } from "react"
 import { createPortal } from "react-dom"
-import { Navigate, NavLink, Route, Routes } from "react-router-dom"
+import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom"
 import {
   Baby,
   CalendarDays,
@@ -13,6 +13,7 @@ import {
   Download,
   Home,
   Leaf,
+  LoaderCircle,
   LockKeyhole,
   LogOut,
   Monitor,
@@ -154,6 +155,7 @@ const AppOptionsContext = createContext<AppOptions | null>(null)
 
 function App() {
   const store = useBabyStore()
+  useScrollToTopOnRoute(store.familySession?.familyCodeHash ?? "")
   const [theme, setTheme] = useTheme()
   const appOptions = useStoredAppOptions()
   const badgeUnlockDates = useBadgeUnlockDates(store.tests, store.syncStatus)
@@ -199,6 +201,14 @@ function App() {
       </div>
     </AppOptionsContext.Provider>
   )
+}
+
+function useScrollToTopOnRoute(sessionKey: string) {
+  const { pathname } = useLocation()
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0 })
+  }, [pathname, sessionKey])
 }
 
 function PageLoading({ label }: { label: string }) {
@@ -324,7 +334,7 @@ function useBadgeUnlockDates(
 
     if (hasCheckedExistingBadges.current) {
       newlyUnlocked.slice(0, 3).forEach((badge) => {
-        toast.success(`Badge débloqué : ${badge.name} ${badge.emoji}`)
+        toast.success(`Badge débloqué : ${badge.name}`)
       })
     }
 
@@ -377,14 +387,14 @@ function FamilySetup({ store }: { store: ReturnType<typeof useBabyStore> }) {
                 onChange={(event) => setFamilyCode(event.target.value)}
               />
             </label>
-            <Button type="submit" disabled={isSubmitting || !familyCode.trim() || !store.isConfigured}>
-              {isSubmitting ? "Connexion..." : "Ouvrir l’espace famille"}
+            <Button type="submit" disabled={isSubmitting || !familyCode.trim()}>
+              {isSubmitting ? "Connexion..." : store.isConfigured ? "Ouvrir l’espace famille" : "Continuer en local"}
             </Button>
           </form>
           {!store.isConfigured && (
             <p className="mt-4 rounded-md border bg-muted p-3 text-sm text-muted-foreground">
-              Supabase n’est pas encore configuré. Ajoutez `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY`
-              dans un fichier `.env.local`.
+              Mode local disponible. Ajoutez `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY`
+              dans `.env.local` pour activer le partage entre appareils.
             </p>
           )}
           <p className="mt-4 text-xs leading-5 text-muted-foreground">
@@ -437,6 +447,7 @@ function HomePage({
   return (
     <>
       <Header eyebrow="Diversification" title="Cette semaine" />
+      <Disclaimer compact />
       <div className="rounded-xl bg-gradient-to-br from-secondary/55 via-card/80 to-accent/20 p-4 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -519,7 +530,7 @@ function HomePage({
               return (
                 <AnimatedListItem key={test.id} className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="font-medium">{food.emoji} {food.name}</p>
+                    <p className="font-medium">{food.name}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       <p className="text-sm text-muted-foreground">{testDateTimeLabel(test)}</p>
                       {popoteEnabled && test.isPopote && <PopoteBadge />}
@@ -633,12 +644,18 @@ function FoodsPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
             <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
             <Input
               className="pl-10"
+              aria-label="Rechercher un aliment"
               placeholder="Rechercher un aliment"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
           </div>
-          <Button type="button" variant={hasActiveFilters ? "default" : "outline"} onClick={() => setIsFiltersOpen(true)}>
+          <Button
+            type="button"
+            variant={hasActiveFilters ? "default" : "outline"}
+            onClick={() => setIsFiltersOpen(true)}
+            aria-haspopup="dialog"
+          >
             <SlidersHorizontal data-icon="inline-start" aria-hidden="true" />
             Filtres
             {activeFilterChips.length > 0 && <span className="rounded-full bg-background/20 px-1.5 text-xs">{activeFilterChips.length}</span>}
@@ -879,8 +896,10 @@ function FilterToggle({
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={active}
       className={cn(
-        "flex items-center justify-between gap-3 rounded-md border bg-card px-3 py-3 text-left text-sm font-medium transition-colors",
+        "flex min-h-12 touch-manipulation items-center justify-between gap-3 rounded-md border bg-card px-3 py-3 text-left text-sm font-medium transition-colors hover:bg-muted/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         active && "border-primary bg-primary/10 text-primary",
       )}
       onClick={onClick}
@@ -917,7 +936,7 @@ function HistoryPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="font-medium">{food.emoji} {food.name}</p>
+                          <p className="font-medium">{food.name}</p>
                           <p className="mt-1 text-xs text-muted-foreground">{testDateTimeLabel(test)}</p>
                         </div>
                         <StatusBadge status={test.reaction === "aucune réaction" ? "testé" : "réaction"} />
@@ -959,7 +978,14 @@ function HistoryTestActions({
 
     await store.deleteTest(test.id)
     toast.success(`${food.name} retiré du journal`)
+    setConfirmingRemoval(false)
   }
+
+  useEffect(() => {
+    if (!confirmingRemoval) return
+    const timeout = window.setTimeout(() => setConfirmingRemoval(false), 3500)
+    return () => window.clearTimeout(timeout)
+  }, [confirmingRemoval])
 
   return (
     <>
@@ -976,9 +1002,10 @@ function HistoryTestActions({
         </Button>
         <Button
           type="button"
-          variant="outline"
-          className={cn("h-11 min-h-11 w-full px-3", confirmingRemoval && "border-destructive/50 text-destructive")}
+          variant={confirmingRemoval ? "destructive" : "outline"}
+          className="h-11 min-h-11 w-full px-3"
           onClick={removeTest}
+          aria-label={confirmingRemoval ? `Confirmer le retrait de ${food.name}` : `Retirer ${food.name} du journal`}
         >
           <Trash2 data-icon="inline-start" aria-hidden="true" />
           {confirmingRemoval ? "Confirmer" : "Retirer"}
@@ -1004,7 +1031,7 @@ function SettingsPage({
   const [isSavingChildProfile, setIsSavingChildProfile] = useState(false)
   const importInputRef = useRef<HTMLInputElement>(null)
   const familyCodeLabel = store.familySession?.familyCodeLabel ?? ""
-  const shouldShowSyncStatus = ["loading", "syncing", "offline", "error"].includes(store.syncStatus)
+  const shouldShowSyncStatus = ["loading", "syncing", "offline", "error", "not-configured"].includes(store.syncStatus)
   const hasChildProfileChanges =
     childName.trim() !== store.profile.childName || birthDate !== store.profile.birthDate
 
@@ -1084,6 +1111,7 @@ function SettingsPage({
           {store.syncStatus === "syncing" && "Synchronisation en cours..."}
           {store.syncStatus === "offline" && "Hors ligne, cache local affiché."}
           {store.syncStatus === "error" && "La synchronisation est à vérifier."}
+          {store.syncStatus === "not-configured" && "Mode local actif : le partage entre appareils sera disponible après configuration Supabase."}
         </p>
       )}
 
@@ -1260,6 +1288,34 @@ function ThemeButton({
   )
 }
 
+const foodCategoryVisuals: Record<Food["category"], typeof Leaf> = {
+  Légumes: Leaf,
+  Fruits: Cookie,
+  Féculents: Coffee,
+  Protéines: Utensils,
+  "Matières grasses": PackageCheck,
+  "Produits laitiers": Coffee,
+  Divers: SlidersHorizontal,
+}
+
+function FoodVisual({ food, size = "md" }: { food: Food; size?: "sm" | "md" | "lg" }) {
+  const Icon = foodCategoryVisuals[food.category]
+
+  return (
+    <span
+      className={cn(
+        "flex shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground shadow-sm",
+        size === "sm" && "size-10",
+        size === "md" && "size-12",
+        size === "lg" && "size-14",
+      )}
+      aria-hidden="true"
+    >
+      <Icon className={cn(size === "sm" ? "size-4" : "size-5")} />
+    </span>
+  )
+}
+
 const FoodCard = memo(function FoodCard({ food, store }: { food: Food; store: ReturnType<typeof useBabyStore> }) {
   const { popoteEnabled } = useAppOptions()
   const status = getStatus(food.id, store.latestByFood)
@@ -1278,9 +1334,7 @@ const FoodCard = memo(function FoodCard({ food, store }: { food: Food; store: Re
         <Card className="pointer-events-none bg-card/90 transition-colors hover:border-primary/35 hover:bg-card">
           <CardHeader className="pb-3">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-secondary text-2xl" aria-hidden="true">
-                {food.emoji}
-              </span>
+              <FoodVisual food={food} />
               <div className="min-w-0">
                 <CardTitle className="truncate">{food.name}</CardTitle>
                 <CardDescription>{food.category} · {ageSummary(food)}</CardDescription>
@@ -1369,6 +1423,7 @@ function FoodTestDrawer({
   const [note, setNote] = useState(() => existingTest?.note ?? "")
   const [showNote, setShowNote] = useState(() => Boolean(existingTest?.note))
   const [confirmingRemoval, setConfirmingRemoval] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const titleId = useId()
   const status = getStatus(food.id, store.latestByFood)
 
@@ -1390,6 +1445,8 @@ function FoodTestDrawer({
   }, [onOpenChange, open])
 
   async function saveTest() {
+    if (isSaving) return
+
     const nextTest = {
       foodId: food.id,
       date,
@@ -1399,12 +1456,17 @@ function FoodTestDrawer({
       note,
     }
 
-    if (existingTest) {
-      await store.updateTest(existingTest.id, nextTest)
-      toast.success(`${food.name} mis à jour`)
-    } else {
-      await store.addTest(nextTest)
-      toast.success(`${food.name} ajouté à l’historique`)
+    setIsSaving(true)
+    try {
+      if (existingTest) {
+        await store.updateTest(existingTest.id, nextTest)
+        toast.success(`${food.name} mis à jour`)
+      } else {
+        await store.addTest(nextTest)
+        toast.success(`${food.name} ajouté à l’historique`)
+      }
+    } finally {
+      setIsSaving(false)
     }
 
     onOpenChange(false)
@@ -1453,13 +1515,16 @@ function FoodTestDrawer({
         data-side="bottom"
         data-state="open"
       >
-        <div className="relative shrink-0 px-5 pb-3 pt-5">
-          <h2 id={titleId} className="pr-10 text-lg font-semibold text-foreground">
-            {food.emoji} {food.name}
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {food.category} · {isEditing ? "test déjà enregistré" : ageSummary(food)}
-          </p>
+        <div className="relative flex shrink-0 items-start gap-3 px-5 pb-3 pt-5">
+          <FoodVisual food={food} size="sm" />
+          <div className="min-w-0 flex-1 pr-10">
+            <h2 id={titleId} className="truncate text-lg font-semibold text-foreground">
+              {food.name}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {food.category} · {isEditing ? "test déjà enregistré" : ageSummary(food)}
+            </p>
+          </div>
           <button
             type="button"
             className="absolute right-4 top-4 inline-flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -1591,11 +1656,12 @@ function FoodTestDrawer({
         </div>
         <div className="shrink-0 border-t bg-background/95 p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] backdrop-blur">
           <div className="grid gap-2">
-            <Button type="button" className="h-12 w-full" onClick={saveTest}>
-              {isEditing ? "Sauvegarder les changements" : "Marquer comme testé"}
+            <Button type="button" className="h-12 w-full" onClick={saveTest} disabled={isSaving}>
+              {isSaving && <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />}
+              {isSaving ? "Sauvegarde..." : isEditing ? "Sauvegarder les changements" : "Marquer comme testé"}
             </Button>
             {existingTest && (
-              <Button type="button" variant="outline" className="h-11 w-full text-destructive" onClick={removeTest}>
+              <Button type="button" variant="outline" className="h-11 w-full text-destructive" onClick={removeTest} disabled={isSaving}>
                 <Trash2 data-icon="inline-start" aria-hidden="true" />
                 {confirmingRemoval ? "Confirmer le retrait" : "Retirer ce test"}
               </Button>
@@ -1677,7 +1743,10 @@ function BottomNav() {
   ]
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-xl border-t bg-background/92 px-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2 backdrop-blur">
+    <nav
+      aria-label="Navigation principale"
+      className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-xl border-t bg-background/92 px-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2 shadow-[0_-16px_40px_-32px_hsl(var(--foreground)/0.45)] backdrop-blur"
+    >
       <div className="grid grid-cols-5 gap-1">
         {items.map((item) => (
           <NavLink
@@ -1685,12 +1754,12 @@ function BottomNav() {
             to={item.to}
             className={({ isActive }) =>
               cn(
-                "flex min-h-14 flex-col items-center justify-center gap-1 rounded-md text-xs font-medium text-muted-foreground",
-                isActive && "bg-secondary text-secondary-foreground",
+                "flex min-h-14 touch-manipulation flex-col items-center justify-center gap-1 rounded-md text-xs font-semibold text-muted-foreground transition-all duration-200 hover:bg-muted/65 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                isActive && "bg-secondary text-secondary-foreground shadow-sm",
               )
             }
           >
-            <item.icon aria-hidden="true" />
+            <item.icon className="size-5" aria-hidden="true" />
             {item.label}
           </NavLink>
         ))}

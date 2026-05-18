@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { motion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
 import { CalendarDays, Check, LockKeyhole, Sparkles } from "lucide-react"
 
 import { Badge as UiBadge } from "@/components/ui/badge"
@@ -51,7 +51,7 @@ type ProgressCard = {
   accent: string
   current: number
   description: string
-  emoji: string
+  icon: typeof Sparkles
   target: number
   title: string
 }
@@ -82,6 +82,7 @@ const cardMotion = {
 }
 
 export function DiscoveriesPage({ badgeUnlockDates, tests }: DiscoveriesPageProps) {
+  const shouldReduceMotion = useReducedMotion()
   const [badgeFilter, setBadgeFilter] = useState<BadgeCategory | "all">("all")
   const badges = useMemo(() => calculateBadges(foods, tests, badgeUnlockDates), [badgeUnlockDates, tests])
   const goals = useMemo(() => calculateGoals(foods, tests), [tests])
@@ -95,7 +96,7 @@ export function DiscoveriesPage({ badgeUnlockDates, tests }: DiscoveriesPageProp
     {
       title: "Aliments découverts",
       description: "Le carnet d’exploration se remplit.",
-      emoji: "🥄",
+      icon: Sparkles,
       current: progress.testedFoods,
       target: Math.min(50, foods.length),
       accent: "from-emerald-500/18 to-teal-400/10",
@@ -103,7 +104,7 @@ export function DiscoveriesPage({ badgeUnlockDates, tests }: DiscoveriesPageProp
     {
       title: "Légumes",
       description: "Le potager commence à être bien exploré.",
-      emoji: "🥦",
+      icon: Check,
       current: progress.vegetables,
       target: foods.filter((food) => food.category === "Légumes").length,
       accent: "from-lime-500/18 to-emerald-400/10",
@@ -111,7 +112,7 @@ export function DiscoveriesPage({ badgeUnlockDates, tests }: DiscoveriesPageProp
     {
       title: "Fruits",
       description: "Une page de compotes et de couleurs.",
-      emoji: "🍎",
+      icon: Sparkles,
       current: progress.fruits,
       target: foods.filter((food) => food.category === "Fruits").length,
       accent: "from-rose-500/16 to-amber-300/12",
@@ -119,7 +120,7 @@ export function DiscoveriesPage({ badgeUnlockDates, tests }: DiscoveriesPageProp
     {
       title: "Textures explorées",
       description: "Lisse, écrasé, fondant, haché...",
-      emoji: "🧩",
+      icon: CalendarDays,
       current: progress.textures,
       target: 4,
       accent: "from-sky-500/16 to-cyan-300/10",
@@ -127,7 +128,7 @@ export function DiscoveriesPage({ badgeUnlockDates, tests }: DiscoveriesPageProp
     {
       title: "Réactions gardées",
       description: "Des observations tranquilles, utiles plus tard.",
-      emoji: "🔍",
+      icon: LockKeyhole,
       current: progress.reactions,
       target: 10,
       accent: "from-violet-500/16 to-fuchsia-300/10",
@@ -135,7 +136,7 @@ export function DiscoveriesPage({ badgeUnlockDates, tests }: DiscoveriesPageProp
     {
       title: "Notes ajoutées",
       description: "Les souvenirs de dégustation prennent forme.",
-      emoji: "📝",
+      icon: Check,
       current: progress.notes,
       target: 10,
       accent: "from-amber-500/18 to-orange-300/10",
@@ -143,7 +144,7 @@ export function DiscoveriesPage({ badgeUnlockDates, tests }: DiscoveriesPageProp
     {
       title: "Aliments de saison",
       description: "Un petit panier inspiré du marché.",
-      emoji: "🧺",
+      icon: Sparkles,
       current: progress.seasonalFoods,
       target: 10,
       accent: "from-green-500/16 to-yellow-300/10",
@@ -168,11 +169,11 @@ export function DiscoveriesPage({ badgeUnlockDates, tests }: DiscoveriesPageProp
             </div>
             <motion.div
               aria-hidden="true"
-              animate={{ rotate: [0, -4, 4, 0], scale: [1, 1.04, 1] }}
-              className="flex size-14 shrink-0 items-center justify-center rounded-full bg-background/70 text-3xl shadow-soft"
+              animate={shouldReduceMotion ? undefined : { rotate: [0, -4, 4, 0], scale: [1, 1.04, 1] }}
+              className="flex size-14 shrink-0 items-center justify-center rounded-full bg-background/70 text-primary shadow-soft"
               transition={{ duration: 3.5, repeat: Infinity, repeatDelay: 2 }}
             >
-              ✨
+              <Sparkles className="size-6" />
             </motion.div>
           </div>
         </CardHeader>
@@ -250,13 +251,15 @@ function AnimatedProgress({ current, target }: { current: number; target: number
 }
 
 function ProgressionCard({ card }: { card: ProgressCard }) {
+  const Icon = card.icon
+
   return (
     <motion.div variants={cardMotion}>
       <Card className={cn("overflow-hidden bg-card/90", `bg-gradient-to-br ${card.accent}`)}>
         <CardContent className="flex flex-col gap-3 p-4">
           <div className="flex items-start gap-3">
             <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-background/70 text-2xl shadow-soft" aria-hidden="true">
-              {card.emoji}
+              <Icon className="size-5 text-primary" />
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-3">
@@ -280,6 +283,8 @@ function ProgressionCard({ card }: { card: ProgressCard }) {
 }
 
 function BadgeCard({ badge }: { badge: DiscoveryBadge }) {
+  const shouldReduceMotion = useReducedMotion()
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -294,14 +299,14 @@ function BadgeCard({ badge }: { badge: DiscoveryBadge }) {
           <div className="flex items-start gap-3">
             <motion.span
               aria-hidden="true"
-              animate={badge.unlocked ? { scale: [0.96, 1.08, 1] } : { scale: 1 }}
+              animate={!shouldReduceMotion && badge.unlocked ? { scale: [0.96, 1.08, 1] } : { scale: 1 }}
               className={cn(
-                "flex size-12 shrink-0 items-center justify-center rounded-full text-2xl shadow-soft",
+                "flex size-12 shrink-0 items-center justify-center rounded-full shadow-soft",
                 badge.unlocked ? "bg-secondary" : "bg-muted",
               )}
               transition={{ duration: 0.45 }}
             >
-              {badge.emoji}
+              {badge.unlocked ? <Sparkles className="size-5 text-primary" /> : <LockKeyhole className="size-5 text-muted-foreground" />}
             </motion.span>
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-2">
@@ -341,8 +346,8 @@ function BadgeCard({ badge }: { badge: DiscoveryBadge }) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <div className="mb-2 flex size-14 items-center justify-center rounded-full bg-secondary text-3xl">
-            {badge.emoji}
+          <div className="mb-2 flex size-14 items-center justify-center rounded-full bg-secondary text-primary">
+            {badge.unlocked ? <Sparkles className="size-6" /> : <LockKeyhole className="size-6" />}
           </div>
           <DialogTitle>{badge.name}</DialogTitle>
           <DialogDescription>{badge.description}</DialogDescription>

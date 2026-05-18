@@ -315,14 +315,16 @@ export function useBabyStore() {
   }, [state.tests])
 
   async function connectFamily(code: string) {
+    const familyCodeHash = await hashFamilyCode(code)
+    const nextSession = { familyCodeHash, familyCodeLabel: code.trim() }
+
     if (!isSupabaseConfigured) {
       setSyncStatus("not-configured")
       setSyncError("Supabase n’est pas encore configuré.")
-      return false
+      setFamilySession(nextSession)
+      return true
     }
 
-    const familyCodeHash = await hashFamilyCode(code)
-    const nextSession = { familyCodeHash, familyCodeLabel: code.trim() }
     setFamilySession(nextSession)
     return true
   }
