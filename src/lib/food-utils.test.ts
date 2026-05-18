@@ -16,7 +16,7 @@ function makeFood(overrides: Partial<Food> = {}): Food {
     name: "Carotte",
     emoji: "🥕",
     category: "Légumes",
-    isPopoteEligible: false,
+    popotePackIds: [],
     minAgeMonths: 4,
     possibleAgeMonths: 4,
     recommendedAgeMonths: 6,

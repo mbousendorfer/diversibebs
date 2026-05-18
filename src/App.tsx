@@ -61,7 +61,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { Toaster } from "@/components/ui/sonner"
-import { categories, foods, type Food } from "@/data/foods"
+import { categories, foods, isFoodInPack, popotePacks, type Food } from "@/data/foods"
 import { foodSourceReferences, reviewedAt, sourcesByTheme } from "@/data/sources"
 import { backupFileName, backupToJson } from "@/lib/backup"
 import {
@@ -161,8 +161,16 @@ const reactionDisplay: Record<Reaction, { emoji: string; label: string }> = {
 }
 
 type AppOptions = {
-  popoteEnabled: boolean
-  setPopoteEnabled: (enabled: boolean) => void
+  activePopotePackId: string | null
+  setActivePopotePackId: (packId: string | null) => void
+}
+
+const defaultPopotePackId = popotePacks[0]?.id ?? null
+const popotePackIdSet = new Set(popotePacks.map((pack) => pack.id))
+
+type StoredAppOptions = {
+  activePopotePackId?: string | null
+  popoteEnabled?: boolean
 }
 
 const AppOptionsContext = createContext<AppOptions | null>(null)
@@ -273,27 +281,40 @@ function useTheme() {
 }
 
 function useStoredAppOptions() {
-  const [popoteEnabled, setPopoteEnabled] = useState(() => {
+  const [activePopotePackId, setActivePopotePackId] = useState<string | null>(() => {
     try {
       const stored = localStorage.getItem(appOptionsStorageKey)
-      if (!stored) return true
+      if (!stored) return defaultPopotePackId
 
-      const parsed = JSON.parse(stored) as Partial<Pick<AppOptions, "popoteEnabled">>
-      return parsed.popoteEnabled !== false
+      const parsed = JSON.parse(stored) as StoredAppOptions
+
+      if (typeof parsed.activePopotePackId === "string") {
+        return popotePackIdSet.has(parsed.activePopotePackId) ? parsed.activePopotePackId : null
+      }
+      if (parsed.activePopotePackId === null) return null
+
+      if (typeof parsed.popoteEnabled === "boolean") {
+        return parsed.popoteEnabled ? defaultPopotePackId : null
+      }
+
+      return defaultPopotePackId
     } catch {
-      return true
+      return defaultPopotePackId
     }
   })
 
   useEffect(() => {
     try {
-      localStorage.setItem(appOptionsStorageKey, JSON.stringify({ popoteEnabled }))
+      localStorage.setItem(appOptionsStorageKey, JSON.stringify({ activePopotePackId }))
     } catch {
       // Local display preference; the app remains usable without persistence.
     }
-  }, [popoteEnabled])
+  }, [activePopotePackId])
 
-  return useMemo(() => ({ popoteEnabled, setPopoteEnabled }), [popoteEnabled])
+  return useMemo(
+    () => ({ activePopotePackId, setActivePopotePackId }),
+    [activePopotePackId],
+  )
 }
 
 function useAppOptions() {
@@ -529,7 +550,7 @@ function HomePage({
   suggestions: Food[]
   recentTests: ReturnType<typeof useBabyStore>["tests"]
 }) {
-  const { popoteEnabled } = useAppOptions()
+  const { activePopotePackId } = useAppOptions()
   const [discardedSuggestionIds, setDiscardedSuggestionIds] = useState<string[]>([])
   const visibleSuggestions = suggestions.filter((food) => !discardedSuggestionIds.includes(food.id))
   const topFood = visibleSuggestions[0]
@@ -614,7 +635,7 @@ function HomePage({
                     <p className="font-medium">{food.name}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       <p className="text-sm text-muted-foreground">{testDateTimeLabel(test)}</p>
-                      {popoteEnabled && test.isPopote && <PopoteBadge />}
+                      {activePopotePackId !== null && test.isPopote && <PopoteBadge />}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -634,15 +655,15 @@ function HomePage({
 }
 
 function FoodsPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
-  const { popoteEnabled } = useAppOptions()
+  const { activePopotePackId } = useAppOptions()
   const [query, setQuery] = useState("")
   const [filters, setFilters] = useState<FoodFilters>(initialFoodFilters)
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
   const normalizedQuery = query.toLowerCase().trim()
 
   useEffect(() => {
-    if (!popoteEnabled && filters.popoteOnly) updateFilters({ popoteOnly: false })
-  }, [filters.popoteOnly, popoteEnabled])
+    if (activePopotePackId === null && filters.popoteOnly) updateFilters({ popoteOnly: false })
+  }, [filters.popoteOnly, activePopotePackId])
 
   function updateFilters(nextFilters: Partial<FoodFilters>) {
     setFilters((current) => ({ ...current, ...nextFilters }))
@@ -673,7 +694,7 @@ function FoodsPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
   const presetCounts = useMemo(
     () => ({
       allergens: searchableFoods.filter((food) => food.tags.includes("allergène")).length,
-      popote: popoteEnabled ? searchableFoods.filter((food) => food.isPopoteEligible).length : 0,
+      popote: activePopotePackId !== null ? searchableFoods.filter((food) => isFoodInPack(food, activePopotePackId)).length : 0,
       season: searchableFoods.filter((food) => isInSeason(food)).length,
       untested: searchableFoods.filter((food) => getStatus(food.id, store.latestByFood) === "non testé").length,
     }),
@@ -687,9 +708,9 @@ function FoodsPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
     if (filters.introduction !== "toutes") chips.push({ key: "introduction", label: `Introduction ${introductionFilterLabels[filters.introduction].toLowerCase()}`, reset: { introduction: "toutes" } })
     if (filters.seasonOnly) chips.push({ key: "seasonOnly", label: "De saison", reset: { seasonOnly: false } })
     if (filters.allergensOnly) chips.push({ key: "allergensOnly", label: "Allergènes", reset: { allergensOnly: false } })
-    if (popoteEnabled && filters.popoteOnly) chips.push({ key: "popoteOnly", label: "Popote", reset: { popoteOnly: false } })
+    if (activePopotePackId !== null && filters.popoteOnly) chips.push({ key: "popoteOnly", label: "Popote", reset: { popoteOnly: false } })
     return chips
-  }, [filters, popoteEnabled])
+  }, [filters, activePopotePackId])
 
   const hasActiveFilters = activeFilterChips.length > 0
 
@@ -709,12 +730,12 @@ function FoodsPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
           (filters.introduction === "possible" && food.level === "possible")
         const matchesSeason = !filters.seasonOnly || isInSeason(food)
         const matchesAllergens = !filters.allergensOnly || food.tags.includes("allergène")
-        const matchesPopote = !popoteEnabled || !filters.popoteOnly || food.isPopoteEligible
+        const matchesPopote = activePopotePackId === null || !filters.popoteOnly || isFoodInPack(food, activePopotePackId)
 
         return matchesCategory && matchesStatus && matchesIntroduction && matchesSeason && matchesAllergens && matchesPopote
       })
       .sort((a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base" }))
-  }, [filters, popoteEnabled, searchableFoods, store.latestByFood])
+  }, [filters, activePopotePackId, searchableFoods, store.latestByFood])
 
   return (
     <>
@@ -759,7 +780,7 @@ function FoodsPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
             label="De saison"
             onClick={() => updateFilters({ seasonOnly: !filters.seasonOnly })}
           />
-          {popoteEnabled && (
+          {activePopotePackId !== null && (
             <QuickFilterButton
               active={filters.popoteOnly}
               count={presetCounts.popote}
@@ -877,7 +898,7 @@ function FoodsPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
                 <div className="grid grid-cols-1 gap-2">
                   <FilterToggle active={filters.seasonOnly} count={presetCounts.season} label="De saison" onClick={() => updateFilters({ seasonOnly: !filters.seasonOnly })} />
                   <FilterToggle active={filters.allergensOnly} count={presetCounts.allergens} label="Allergènes" onClick={() => updateFilters({ allergensOnly: !filters.allergensOnly })} />
-                  {popoteEnabled && <FilterToggle active={filters.popoteOnly} count={presetCounts.popote} label="Popote" onClick={() => updateFilters({ popoteOnly: !filters.popoteOnly })} />}
+                  {activePopotePackId !== null && <FilterToggle active={filters.popoteOnly} count={presetCounts.popote} label="Popote" onClick={() => updateFilters({ popoteOnly: !filters.popoteOnly })} />}
                 </div>
               </FilterSection>
             </div>
@@ -991,7 +1012,7 @@ function FilterToggle({
 }
 
 function HistoryPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
-  const { popoteEnabled } = useAppOptions()
+  const { activePopotePackId } = useAppOptions()
 
   return (
     <>
@@ -1023,7 +1044,7 @@ function HistoryPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
                         <StatusBadge status={status} />
                         {isInSeason(food) && <SeasonBadge />}
                         <IntroductionBadge level={food.level} />
-                        {popoteEnabled && test.isPopote && <PopoteBadge />}
+                        {activePopotePackId !== null && test.isPopote && <PopoteBadge />}
                       </div>
                       <div className="mt-3 rounded-xl border bg-muted/35 p-3">
                         <p className="text-xs font-semibold uppercase text-muted-foreground">Dernier test</p>
@@ -1123,7 +1144,7 @@ function SettingsPage({
   theme: ThemeMode
   setTheme: (theme: ThemeMode) => void
 }) {
-  const { popoteEnabled, setPopoteEnabled } = useAppOptions()
+  const { activePopotePackId, setActivePopotePackId } = useAppOptions()
   const [childName, setChildName] = useState(store.profile.childName)
   const [birthDate, setBirthDate] = useState(store.profile.birthDate)
   const [isSavingChildProfile, setIsSavingChildProfile] = useState(false)
@@ -1280,34 +1301,29 @@ function SettingsPage({
           </div>
         </SettingsSection>
 
-        <SettingsSection description="Affichez uniquement les informations utiles à votre suivi." title="Options">
-          <button
-            type="button"
-            className="flex w-full items-center justify-between gap-3 rounded-lg bg-muted/55 p-3 text-left transition-colors hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            onClick={() => setPopoteEnabled(!popoteEnabled)}
-            aria-pressed={popoteEnabled}
-          >
-            <span className="flex min-w-0 flex-col gap-1">
-              <span className="text-sm font-semibold">Option Popote</span>
-              <span className="text-xs font-normal leading-5 text-muted-foreground">
-                Afficher les filtres, badges et choix liés aux gourdes Popote.
-              </span>
-            </span>
-            <span
-              className={cn(
-                "flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition-colors",
-                popoteEnabled ? "bg-primary" : "bg-muted",
-              )}
-              aria-hidden="true"
-            >
-              <span
-                className={cn(
-                  "size-5 rounded-full bg-background shadow-sm transition-transform",
-                  popoteEnabled && "translate-x-5",
-                )}
-              />
-            </span>
-          </button>
+        <SettingsSection description="Activez l’option pour afficher les filtres, badges et choix liés à un pack Popote." title="Option Popote">
+          <PopoteToggle
+            enabled={activePopotePackId !== null}
+            onToggle={(enabled) =>
+              setActivePopotePackId(enabled ? popotePacks[0]?.id ?? null : null)
+            }
+          />
+          {activePopotePackId !== null && popotePacks.length > 0 && (
+            <div className="grid gap-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Pack utilisé
+              </p>
+              {popotePacks.map((pack) => (
+                <PopotePackOption
+                  key={pack.id}
+                  description={`${pack.foodIds.size} aliments inclus.`}
+                  label={pack.name}
+                  selected={activePopotePackId === pack.id}
+                  onSelect={() => setActivePopotePackId(pack.id)}
+                />
+              ))}
+            </div>
+          )}
         </SettingsSection>
 
         <SettingsSection description="Gardez une copie, restaurez le suivi ou préparez un rendez-vous." title="Sauvegarde">
@@ -1447,6 +1463,87 @@ function SettingsSection({
   )
 }
 
+function PopoteToggle({
+  enabled,
+  onToggle,
+}: {
+  enabled: boolean
+  onToggle: (enabled: boolean) => void
+}) {
+  return (
+    <button
+      type="button"
+      className="flex w-full items-center justify-between gap-3 rounded-lg bg-muted/55 p-3 text-left transition-colors hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      onClick={() => onToggle(!enabled)}
+      aria-pressed={enabled}
+    >
+      <span className="flex min-w-0 flex-col gap-1">
+        <span className="text-sm font-semibold">Option Popote</span>
+        <span className="text-xs font-normal leading-5 text-muted-foreground">
+          {enabled
+            ? "Filtres, badges et choix Popote affichés."
+            : "Garder l’app minimale, sans filtres Popote."}
+        </span>
+      </span>
+      <span
+        aria-hidden="true"
+        className={cn(
+          "flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition-colors",
+          enabled ? "bg-primary" : "bg-muted",
+        )}
+      >
+        <span
+          className={cn(
+            "size-5 rounded-full bg-background shadow-sm transition-transform",
+            enabled && "translate-x-5",
+          )}
+        />
+      </span>
+    </button>
+  )
+}
+
+function PopotePackOption({
+  description,
+  label,
+  onSelect,
+  selected,
+}: {
+  description: string
+  label: string
+  onSelect: () => void
+  selected: boolean
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onSelect}
+      className={cn(
+        "flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        selected
+          ? "border-primary/40 bg-primary/10"
+          : "border-transparent bg-muted/55 hover:bg-muted/80",
+      )}
+    >
+      <span className="flex min-w-0 flex-col gap-1">
+        <span className="text-sm font-semibold">{label}</span>
+        <span className="text-xs font-normal leading-5 text-muted-foreground">{description}</span>
+      </span>
+      <span
+        aria-hidden="true"
+        className={cn(
+          "flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+          selected ? "border-primary" : "border-muted-foreground/40",
+        )}
+      >
+        {selected && <span className="size-2.5 rounded-full bg-primary" />}
+      </span>
+    </button>
+  )
+}
+
 function ThemeButton({
   active,
   icon: Icon,
@@ -1491,7 +1588,7 @@ function FoodEmoji({ food, size = "md" }: { food: Food; size?: "sm" | "md" | "lg
 }
 
 const FoodCard = memo(function FoodCard({ food, store }: { food: Food; store: ReturnType<typeof useBabyStore> }) {
-  const { popoteEnabled } = useAppOptions()
+  const { activePopotePackId } = useAppOptions()
   const status = getStatus(food.id, store.latestByFood)
   const existingTest = store.latestByFood.get(food.id)
 
@@ -1519,7 +1616,7 @@ const FoodCard = memo(function FoodCard({ food, store }: { food: Food; store: Re
             <StatusBadge status={status} />
             {isInSeason(food) && <SeasonBadge />}
             <IntroductionBadge level={food.level} />
-            {popoteEnabled && food.isPopoteEligible && <PopoteBadge label="Popote possible" />}
+            {isFoodInPack(food, activePopotePackId) && <PopoteBadge label="Popote possible" />}
           </CardContent>
         </Card>
       </button>
@@ -1585,7 +1682,7 @@ function FoodTestDrawer({
   store: ReturnType<typeof useBabyStore>
   test?: FoodTest
 }) {
-  const { popoteEnabled } = useAppOptions()
+  const { activePopotePackId } = useAppOptions()
   const existingTest = test ?? store.latestByFood.get(food.id)
   const isEditing = Boolean(existingTest)
   const [date, setDate] = useState(() => existingTest?.date ?? new Date().toISOString().slice(0, 10))
@@ -1626,7 +1723,7 @@ function FoodTestDrawer({
       foodId: food.id,
       date,
       mealTime,
-      isPopote: popoteEnabled && food.isPopoteEligible ? isPopote : existingTest?.isPopote ?? false,
+      isPopote: isFoodInPack(food, activePopotePackId) ? isPopote : existingTest?.isPopote ?? false,
       reaction,
       note,
     }
@@ -1716,7 +1813,7 @@ function FoodTestDrawer({
               <StatusBadge status={status} />
               {isInSeason(food) && <SeasonBadge />}
               <IntroductionBadge level={food.level} />
-              {popoteEnabled && food.isPopoteEligible && <PopoteBadge label="Popote possible" />}
+              {isFoodInPack(food, activePopotePackId) && <PopoteBadge label="Popote possible" />}
               <SeasonMonthsGrid activeMonths={food.seasonMonths} />
             </div>
             <p className="rounded-xl bg-muted/65 p-4 text-sm leading-6">{food.preparation}</p>
@@ -1791,7 +1888,7 @@ function FoodTestDrawer({
                   )}
                 </div>
               </div>
-              {popoteEnabled && food.isPopoteEligible && (
+              {isFoodInPack(food, activePopotePackId) && (
                 <label className="flex items-center justify-between gap-3 rounded-xl border bg-card/80 p-3 text-sm font-medium">
                   <span className="flex min-w-0 items-center gap-2">
                     <PackageCheck aria-hidden="true" />
