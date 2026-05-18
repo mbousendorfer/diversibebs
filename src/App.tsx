@@ -187,8 +187,9 @@ function App() {
 
   return (
     <AppOptionsContext.Provider value={appOptions}>
-      <div className="safe-shell soft-surface">
-        <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 py-5 sm:px-6">
+      <div className="safe-shell soft-surface lg:grid lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-8 lg:px-8">
+        <DesktopNav />
+        <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 py-5 sm:px-6 lg:mx-0 lg:max-w-6xl lg:px-0 lg:py-8">
           <PwaStatus />
           <Routes>
             <Route path="/" element={<HomePage store={store} suggestions={suggestions} recentTests={recentTests} />} />
@@ -562,7 +563,7 @@ function HomePage({
                 title="Le reste de la semaine"
                 action={<Badge variant="secondary" className="h-8 px-3">{weeklyPlan.length} idées</Badge>}
               />
-              <AnimatedList className="flex flex-col gap-3">
+              <AnimatedList className="grid gap-3 lg:grid-cols-2">
                 {weeklyPlan.map((food) => (
                   <AnimatedListItem key={food.id}>
                     <FoodCard food={food} store={store} />
@@ -589,7 +590,7 @@ function HomePage({
               Aucun aliment marqué comme testé pour le moment.
             </p>
           ) : (
-            <AnimatedList className="flex flex-col gap-3">
+            <AnimatedList className="grid gap-3 lg:grid-cols-2">
               {recentTests.map((test) => {
               const food = foods.find((item) => item.id === test.foodId)
               if (!food) return null
@@ -801,7 +802,7 @@ function FoodsPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
           Essayez d’enlever un filtre ou de modifier la recherche.
         </EmptyState>
       ) : (
-        <AnimatedList className="flex flex-col gap-3">
+        <AnimatedList className="grid gap-3 lg:grid-cols-2">
           {filteredFoods.map((food) => (
             <AnimatedListItem key={food.id}>
               <FoodCard food={food} store={store} />
@@ -811,7 +812,7 @@ function FoodsPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
       )}
 
       <Drawer open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
-        <DrawerContent side="bottom" className="flex h-[88svh] max-h-[88svh] flex-col gap-0 p-0">
+        <DrawerContent side="bottom" className="flex h-[88svh] max-h-[88svh] flex-col gap-0 p-0 lg:inset-x-auto lg:bottom-auto lg:left-1/2 lg:top-1/2 lg:h-auto lg:max-h-[min(760px,calc(100vh-4rem))] lg:w-[min(720px,calc(100vw-4rem))] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-2xl lg:border">
           <DrawerHeader className="shrink-0 px-6 pb-4 pt-6">
             <DrawerTitle>Filtres</DrawerTitle>
             <DrawerDescription>Croisez les critères pour trouver le prochain aliment à tester.</DrawerDescription>
@@ -867,7 +868,7 @@ function FoodsPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
               </FilterSection>
             </div>
           </ScrollArea>
-          <div className="grid shrink-0 grid-cols-2 gap-2 border-t bg-background p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+          <div className="grid shrink-0 grid-cols-2 gap-2 border-t bg-background p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] lg:pb-4">
             <Button type="button" variant="outline" onClick={resetFilters} disabled={!hasActiveFilters}>
               Réinitialiser
             </Button>
@@ -986,7 +987,7 @@ function HistoryPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
           Les tests ajoutés apparaîtront ici par ordre récent, avec vos notes et réactions.
         </EmptyState>
       ) : (
-        <AnimatedList className="flex flex-col gap-3">
+        <AnimatedList className="grid gap-3 lg:grid-cols-2">
           {store.tests.map((test) => {
               const food = foods.find((item) => item.id === test.foodId)
               if (!food) return null
@@ -1175,7 +1176,7 @@ function SettingsPage({
         </p>
       )}
 
-      <div className="grid gap-1">
+      <div className="grid gap-1 lg:grid-cols-2 lg:gap-4">
         <section className="paper-surface soft-ring relative rounded-2xl p-4">
           <SectionHeader title="Enfant" eyebrow="Profil partagé" action={
             <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-secondary text-primary shadow-sm" aria-hidden="true">
@@ -1558,7 +1559,7 @@ function FoodTestDrawer({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="sheet-content fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[84svh] min-h-[58svh] w-full max-w-2xl flex-col gap-0 overflow-hidden rounded-t-2xl border-t bg-background shadow-lg"
+        className="sheet-content fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[84svh] min-h-[58svh] w-full max-w-2xl flex-col gap-0 overflow-hidden rounded-t-2xl border-t bg-background shadow-lg lg:inset-x-auto lg:bottom-auto lg:left-1/2 lg:top-1/2 lg:min-h-0 lg:max-h-[min(820px,calc(100vh-4rem))] lg:w-[min(760px,calc(100vw-4rem))] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-2xl lg:border"
         data-side="bottom"
         data-state="open"
       >
@@ -1724,7 +1725,7 @@ function FoodTestDrawer({
             </div>
           </div>
         </div>
-        <div className="shrink-0 border-t bg-background/95 p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] backdrop-blur">
+        <div className="shrink-0 border-t bg-background/95 p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] backdrop-blur lg:pb-4">
           <div className="grid gap-2">
             <Button type="button" className="h-12 w-full" onClick={saveTest} disabled={isSaving}>
               {isSaving && <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />}
@@ -1857,22 +1858,56 @@ function Disclaimer({ compact = false }: { compact?: boolean }) {
   )
 }
 
-function BottomNav() {
-  const items = [
-    { to: "/", label: "Accueil", icon: Home },
-    { to: "/foods", label: "Aliments", icon: Leaf },
-    { to: "/history", label: "Journal", icon: NotebookText },
-    { to: "/discoveries", label: "Badges", icon: Award },
-    { to: "/settings", label: "Réglages", icon: Settings },
-  ]
+const navigationItems = [
+  { to: "/", label: "Accueil", icon: Home },
+  { to: "/foods", label: "Aliments", icon: Leaf },
+  { to: "/history", label: "Journal", icon: NotebookText },
+  { to: "/discoveries", label: "Badges", icon: Award },
+  { to: "/settings", label: "Réglages", icon: Settings },
+]
 
+function DesktopNav() {
+  return (
+    <aside className="sticky top-0 hidden h-dvh py-8 lg:block">
+      <nav
+        aria-label="Navigation principale"
+        className="paper-surface soft-ring flex h-full flex-col rounded-2xl p-3"
+      >
+        <div className="mb-5 px-3 pt-2">
+          <p className="text-lg font-semibold tracking-normal">Diversibebs</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">Suivi doux de diversification</p>
+        </div>
+        <div className="grid gap-1">
+          {navigationItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === "/"}
+              className={({ isActive }) =>
+                cn(
+                  "flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted/65 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                  isActive && "bg-secondary text-secondary-foreground shadow-sm",
+                )
+              }
+            >
+              <item.icon className="size-5" aria-hidden="true" />
+              {item.label}
+            </NavLink>
+          ))}
+        </div>
+      </nav>
+    </aside>
+  )
+}
+
+function BottomNav() {
   return (
     <nav
       aria-label="Navigation principale"
-      className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-2xl border-t bg-background/95 px-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2 shadow-nav backdrop-blur"
+      className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-2xl border-t bg-background/95 px-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2 shadow-nav backdrop-blur lg:hidden"
     >
       <div className="grid grid-cols-5 gap-1">
-        {items.map((item) => (
+        {navigationItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

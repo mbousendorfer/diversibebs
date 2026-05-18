@@ -184,7 +184,7 @@ export function DiscoveriesPage({ badgeUnlockDates, tests }: DiscoveriesPageProp
         </TabsList>
 
         <TabsContent value="progression" className="mt-0">
-          <motion.div variants={containerMotion} initial="hidden" animate="show" className="flex flex-col gap-3">
+          <motion.div variants={containerMotion} initial="hidden" animate="show" className="grid gap-3 lg:grid-cols-2">
             {progressCards.map((card) => (
               <ProgressionCard key={card.title} card={card} />
             ))}
@@ -206,7 +206,7 @@ export function DiscoveriesPage({ badgeUnlockDates, tests }: DiscoveriesPageProp
               </Button>
             ))}
           </div>
-          <motion.div variants={containerMotion} initial="hidden" animate="show" className="grid grid-cols-1 gap-3">
+          <motion.div variants={containerMotion} initial="hidden" animate="show" className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {filteredBadges.map((badge) => (
               <BadgeCard key={badge.id} badge={badge} />
             ))}
@@ -214,7 +214,7 @@ export function DiscoveriesPage({ badgeUnlockDates, tests }: DiscoveriesPageProp
         </TabsContent>
 
         <TabsContent value="goals" className="mt-0">
-          <motion.div variants={containerMotion} initial="hidden" animate="show" className="flex flex-col gap-3">
+          <motion.div variants={containerMotion} initial="hidden" animate="show" className="grid gap-3 lg:grid-cols-2">
             {goals.map((goal) => (
               <GoalCard key={goal.id} goal={goal} />
             ))}

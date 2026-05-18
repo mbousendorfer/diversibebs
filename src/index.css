@@ -236,6 +236,21 @@
     padding-bottom: calc(env(safe-area-inset-bottom) + 6rem);
   }
 
+  @media (min-width: 1024px) {
+    .safe-shell {
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+
+    .sheet-content[data-side="bottom"][data-state="open"] {
+      animation: sheet-fade-in 180ms ease-out both;
+    }
+
+    .sheet-content[data-side="bottom"][data-state="closed"] {
+      animation: sheet-fade-out 140ms ease-in both;
+    }
+  }
+
   .soft-surface {
     background: hsl(var(--background));
   }
