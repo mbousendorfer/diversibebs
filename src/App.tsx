@@ -1240,12 +1240,6 @@ function SettingsPage({
               Copier
             </Button>
           </div>
-          <div className="mt-3">
-            <Button type="button" variant="ghost" className="h-11 w-full justify-start text-muted-foreground" onClick={() => store.disconnectFamily()}>
-              <LogOut data-icon="inline-start" aria-hidden="true" />
-              Se déconnecter
-            </Button>
-          </div>
         </section>
 
         <SettingsSection description="Le thème reste propre à cet appareil." title="Apparence">
@@ -1306,6 +1300,13 @@ function SettingsPage({
             L’import demande confirmation avant de remplacer les données locales.
           </p>
         </SettingsSection>
+
+        <section className="border-t border-border/60 py-4 lg:col-span-2">
+          <Button type="button" variant="ghost" className="h-11 w-full justify-start text-muted-foreground sm:w-auto" onClick={() => store.disconnectFamily()}>
+            <LogOut data-icon="inline-start" aria-hidden="true" />
+            Se déconnecter
+          </Button>
+        </section>
       </div>
 
       <InstallPrompt />
