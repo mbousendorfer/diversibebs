@@ -6,6 +6,7 @@ import {
   CalendarDays,
   Check,
   ChevronRight,
+  Clock,
   Copy,
   Download,
   Home,
@@ -89,6 +90,7 @@ const DiscoveriesPage = lazy(() =>
 
 type FoodStatusFilter = "tous" | "non-testes" | "testes" | "reaction"
 type IntroductionFilter = "toutes" | "conseillee" | "possible"
+type MealTimePresetId = "breakfast" | "lunch" | "snack" | "dinner" | "custom"
 
 type FoodFilters = {
   allergensOnly: boolean
@@ -127,6 +129,15 @@ type ThemeMode = "light" | "system" | "dark"
 
 const themeStorageKey = "diversibebs-theme-v1"
 const appOptionsStorageKey = "diversibebs-options-v1"
+
+const mealTimePresets: Array<{ id: Exclude<MealTimePresetId, "custom">; label: string; time: string }> = [
+  { id: "breakfast", label: "Petit déjeuner", time: "08:00" },
+  { id: "lunch", label: "Déjeuner", time: "12:00" },
+  { id: "snack", label: "Goûter", time: "16:00" },
+  { id: "dinner", label: "Dîner", time: "19:00" },
+]
+
+const defaultMealTimePreset = mealTimePresets[1]
 
 type AppOptions = {
   popoteEnabled: boolean
@@ -258,6 +269,24 @@ function useAppOptions() {
   const options = useContext(AppOptionsContext)
   if (!options) throw new Error("AppOptionsContext is missing")
   return options
+}
+
+function mealTimePresetFor(time: string): MealTimePresetId {
+  return mealTimePresets.find((preset) => preset.time === time)?.id ?? "custom"
+}
+
+function mealTimeLabel(time: string) {
+  if (!time) return ""
+
+  const preset = mealTimePresets.find((item) => item.time === time)
+  return preset ? preset.label.toLowerCase() : time
+}
+
+function testDateTimeLabel(test: FoodTest) {
+  const date = new Date(`${test.date}T00:00:00`).toLocaleDateString("fr-FR")
+  const time = mealTimeLabel(test.mealTime)
+
+  return time ? `${date} · ${time}` : date
 }
 
 function useBadgeUnlockDates(
@@ -449,7 +478,7 @@ function HomePage({
                   <div>
                     <p className="font-medium">{food.emoji} {food.name}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <p className="text-sm text-muted-foreground">{new Date(test.date).toLocaleDateString("fr-FR")}</p>
+                      <p className="text-sm text-muted-foreground">{testDateTimeLabel(test)}</p>
                       {popoteEnabled && test.isPopote && <PopoteBadge />}
                     </div>
                   </div>
@@ -921,7 +950,7 @@ function HistoryPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
                   <div className="pb-4">
                     <div className="flex items-center justify-between gap-3">
                       <p className="font-medium">{food.emoji} {food.name}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(test.date).toLocaleDateString("fr-FR")}</p>
+                      <p className="text-xs text-muted-foreground">{testDateTimeLabel(test)}</p>
                     </div>
                     <div className="mt-1 flex flex-wrap gap-2">
                       <p className="text-sm text-muted-foreground">{test.reaction}</p>
@@ -1363,6 +1392,10 @@ function FoodTestDrawer({
   const existingTest = test ?? store.latestByFood.get(food.id)
   const isEditing = Boolean(existingTest)
   const [date, setDate] = useState(() => existingTest?.date ?? new Date().toISOString().slice(0, 10))
+  const [mealTime, setMealTime] = useState(() => existingTest?.mealTime || defaultMealTimePreset.time)
+  const [mealTimePreset, setMealTimePreset] = useState<MealTimePresetId>(() =>
+    existingTest?.mealTime ? mealTimePresetFor(existingTest.mealTime) : defaultMealTimePreset.id,
+  )
   const [isPopote, setIsPopote] = useState(() => existingTest?.isPopote ?? false)
   const [note, setNote] = useState(() => existingTest?.note ?? "")
   const [showNote, setShowNote] = useState(() => Boolean(existingTest?.note))
@@ -1391,6 +1424,7 @@ function FoodTestDrawer({
     const nextTest = {
       foodId: food.id,
       date,
+      mealTime,
       isPopote: popoteEnabled && food.isPopoteEligible ? isPopote : existingTest?.isPopote ?? false,
       reaction: existingTest?.reaction ?? "aucune réaction" as const,
       note,
@@ -1406,8 +1440,19 @@ function FoodTestDrawer({
 
     onOpenChange(false)
     setIsPopote(false)
+    setMealTime(defaultMealTimePreset.time)
+    setMealTimePreset(defaultMealTimePreset.id)
     setNote("")
     setShowNote(false)
+  }
+
+  function selectMealTimePreset(presetId: MealTimePresetId) {
+    setMealTimePreset(presetId)
+
+    if (presetId === "custom") return
+
+    const preset = mealTimePresets.find((item) => item.id === presetId)
+    if (preset) setMealTime(preset.time)
   }
 
   async function removeTest() {
@@ -1478,6 +1523,39 @@ function FoodTestDrawer({
                   onChange={(event) => setDate(event.target.value)}
                 />
               </label>
+              <div className="flex min-w-0 flex-col gap-2 text-sm font-medium">
+                Moment
+                <div className="grid grid-cols-2 gap-2">
+                  {mealTimePresets.map((preset) => (
+                    <Button
+                      key={preset.id}
+                      type="button"
+                      variant={mealTimePreset === preset.id ? "secondary" : "outline"}
+                      className="h-auto min-h-11 justify-start px-3 py-2"
+                      onClick={() => selectMealTimePreset(preset.id)}
+                    >
+                      {preset.label}
+                    </Button>
+                  ))}
+                  <Button
+                    type="button"
+                    variant={mealTimePreset === "custom" ? "secondary" : "outline"}
+                    className="h-auto min-h-11 justify-start px-3 py-2"
+                    onClick={() => selectMealTimePreset("custom")}
+                  >
+                    <Clock data-icon="inline-start" aria-hidden="true" />
+                    Entrer l’heure
+                  </Button>
+                </div>
+                {mealTimePreset === "custom" && (
+                  <Input
+                    className="min-w-0 max-w-full"
+                    type="time"
+                    value={mealTime}
+                    onChange={(event) => setMealTime(event.target.value)}
+                  />
+                )}
+              </div>
               {popoteEnabled && food.isPopoteEligible && (
                 <label className="flex items-center justify-between gap-3 rounded-md border bg-card p-3 text-sm font-medium">
                   <span className="flex min-w-0 items-center gap-2">

@@ -188,7 +188,12 @@ export function createGamificationContext(foods: Food[], tests: FoodTest[]): Gam
 
   tests.forEach((test) => {
     const existing = latestTestsByFood.get(test.foodId)
-    if (!existing || test.date > existing.date) latestTestsByFood.set(test.foodId, test)
+    if (
+      !existing ||
+      `${test.date}T${test.mealTime || "00:00"}` > `${existing.date}T${existing.mealTime || "00:00"}`
+    ) {
+      latestTestsByFood.set(test.foodId, test)
+    }
   })
 
   const testedFoods = [...latestTestsByFood.keys()]

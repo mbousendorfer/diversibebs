@@ -8,6 +8,7 @@ export type FoodTest = {
   id: string
   foodId: string
   date: string
+  mealTime: string
   isPopote: boolean
   reaction: Reaction
   note: string
@@ -120,6 +121,7 @@ function normalizeStoredState(value: Partial<StoredState> | null | undefined): S
           id: test.id,
           foodId: test.foodId,
           date: test.date,
+          mealTime: typeof test.mealTime === "string" ? test.mealTime : "",
           isPopote: test.isPopote ?? false,
           reaction: test.reaction,
           note: test.note ?? "",
@@ -160,7 +162,12 @@ async function hashFamilyCode(code: string) {
 }
 
 function sortTests(tests: FoodTest[]) {
-  return [...tests].sort((a, b) => b.date.localeCompare(a.date))
+  return [...tests].sort((a, b) => {
+    const dateOrder = b.date.localeCompare(a.date)
+    if (dateOrder !== 0) return dateOrder
+
+    return (b.mealTime || "00:00").localeCompare(a.mealTime || "00:00")
+  })
 }
 
 function remoteTextOrFallback(value: string | null | undefined, fallback: string) {
@@ -179,6 +186,7 @@ function parseRemoteState(data: unknown, fallbackState: StoredState = initialSta
       foodId?: string
       isPopote?: boolean
       date?: string
+      mealTime?: string
       reaction?: Reaction
       note?: string
     }>
@@ -194,6 +202,7 @@ function parseRemoteState(data: unknown, fallbackState: StoredState = initialSta
       id: test.id ?? "",
       foodId: test.foodId ?? "",
       date: test.date ?? "",
+      mealTime: test.mealTime ?? "",
       isPopote: test.isPopote ?? false,
       reaction: test.reaction ?? "aucune réaction",
       note: test.note ?? "",
@@ -295,7 +304,12 @@ export function useBabyStore() {
     const latest = new Map<string, FoodTest>()
     state.tests.forEach((test) => {
       const existing = latest.get(test.foodId)
-      if (!existing || test.date > existing.date) latest.set(test.foodId, test)
+      if (
+        !existing ||
+        `${test.date}T${test.mealTime || "00:00"}` > `${existing.date}T${existing.mealTime || "00:00"}`
+      ) {
+        latest.set(test.foodId, test)
+      }
     })
     return latest
   }, [state.tests])
@@ -400,15 +414,22 @@ export function useBabyStore() {
     const client = await getSupabase()
     if (!client) return
 
-    const { error } = await client.rpc("add_baby_food_test", {
+    const addPayload = {
       p_date: nextTest.date,
       p_family_code_hash: familySession.familyCodeHash,
       p_food_id: nextTest.foodId,
       p_id: nextTest.id,
       p_is_popote: nextTest.isPopote,
+      p_meal_time: nextTest.mealTime || null,
       p_note: nextTest.note,
       p_reaction: nextTest.reaction,
-    })
+    }
+
+    let { error } = await client.rpc("add_baby_food_test", addPayload)
+    if (error && error.message.includes("p_meal_time")) {
+      const { p_meal_time: _pMealTime, ...legacyPayload } = addPayload
+      ;({ error } = await client.rpc("add_baby_food_test", legacyPayload))
+    }
 
     if (error) {
       setSyncStatus(navigator.onLine ? "error" : "offline")
@@ -434,14 +455,21 @@ export function useBabyStore() {
     const client = await getSupabase()
     if (!client) return
 
-    const { error } = await client.rpc("update_baby_food_test", {
+    const updatePayload = {
       p_date: testWithId.date,
       p_family_code_hash: familySession.familyCodeHash,
       p_id: testWithId.id,
       p_is_popote: testWithId.isPopote,
+      p_meal_time: testWithId.mealTime || null,
       p_note: testWithId.note,
       p_reaction: testWithId.reaction,
-    })
+    }
+
+    let { error } = await client.rpc("update_baby_food_test", updatePayload)
+    if (error && error.message.includes("p_meal_time")) {
+      const { p_meal_time: _pMealTime, ...legacyPayload } = updatePayload
+      ;({ error } = await client.rpc("update_baby_food_test", legacyPayload))
+    }
 
     if (error) {
       setSyncStatus(navigator.onLine ? "error" : "offline")
