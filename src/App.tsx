@@ -12,6 +12,7 @@ import {
   Cookie,
   Copy,
   Download,
+  ExternalLink,
   Home,
   Leaf,
   LoaderCircle,
@@ -1180,7 +1181,6 @@ function SettingsPage({
   const [isSavingChildProfile, setIsSavingChildProfile] = useState(false)
   const importInputRef = useRef<HTMLInputElement>(null)
   const familyCodeLabel = store.familySession?.familyCodeLabel ?? ""
-  const shouldShowSyncStatus = ["loading", "syncing", "offline", "error", "not-configured"].includes(store.syncStatus)
   const hasChildProfileChanges =
     childName.trim() !== store.profile.childName || birthDate !== store.profile.birthDate
 
@@ -1258,43 +1258,38 @@ function SettingsPage({
     <>
       <Header eyebrow="Préférences" title="Réglages" />
 
-      {shouldShowSyncStatus && (
-        <p className="rounded-lg border bg-card/85 p-3 text-sm text-muted-foreground shadow-sm">
-          {store.syncStatus === "loading" && "Chargement des données partagées..."}
-          {store.syncStatus === "syncing" && "Synchronisation en cours..."}
-          {store.syncStatus === "offline" && "Hors connexion, les dernières données restent disponibles sur cet appareil."}
-          {store.syncStatus === "error" && "La synchronisation est à vérifier. Essayez de rafraîchir dans quelques instants."}
-          {store.syncStatus === "not-configured" && "Les données sont gardées sur cet appareil. Le suivi partagé sera disponible après configuration du stockage."}
-        </p>
-      )}
-
       <div className="grid gap-1 lg:grid-cols-2 lg:gap-4">
         <SettingsSection
           description="Profil et code partagés entre vos appareils."
           title="Espace famille"
         >
-          <div className="flex min-w-0 items-center gap-2">
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-lg font-semibold tracking-normal text-foreground">
-                {familyCodeLabel || "Code indisponible"}
-              </p>
-              {!familyCodeLabel && (
-                <p className="mt-1 text-sm leading-5 text-muted-foreground">
-                  Le code original n’est pas disponible sur cet appareil.
-                </p>
-              )}
+          <label className="grid gap-1.5 text-sm font-medium">
+            <span className="text-xs font-semibold uppercase text-muted-foreground">Code famille</span>
+            <div className="flex min-w-0 items-stretch gap-2">
+              <Input
+                readOnly
+                aria-label="Code famille"
+                className="h-11 min-w-0 flex-1 bg-background/70 font-medium"
+                placeholder="Code indisponible"
+                value={familyCodeLabel}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 shrink-0 px-3"
+                onClick={copyFamilyCode}
+                disabled={!familyCodeLabel}
+              >
+                <Copy data-icon="inline-start" aria-hidden="true" />
+                Copier
+              </Button>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-10 shrink-0 px-3"
-              onClick={copyFamilyCode}
-              disabled={!familyCodeLabel}
-            >
-              <Copy data-icon="inline-start" aria-hidden="true" />
-              Copier
-            </Button>
-          </div>
+            {!familyCodeLabel && (
+              <span className="text-xs text-muted-foreground">
+                Le code original n’est pas disponible sur cet appareil.
+              </span>
+            )}
+          </label>
           <label className="grid gap-1.5 text-sm font-medium">
             <span className="text-xs font-semibold uppercase text-muted-foreground">Nom de l’enfant</span>
             <Input
@@ -1356,6 +1351,10 @@ function SettingsPage({
           )}
         </SettingsSection>
 
+        <SourcesSettingsSection />
+
+        <InstallHelpSection />
+
         <SettingsSection description="Gardez une copie, restaurez le suivi ou préparez un rendez-vous." title="Sauvegarde">
           <Button type="button" variant="outline" className="h-11 justify-start" onClick={exportBackup}>
             <Download data-icon="inline-start" aria-hidden="true" />
@@ -1381,12 +1380,8 @@ function SettingsPage({
           </p>
         </SettingsSection>
 
-        <SourcesSettingsSection />
-
-        <InstallHelpSection />
-
-        <section className="border-t border-border/60 py-4 lg:col-span-2">
-          <Button type="button" variant="ghost" className="h-11 w-full justify-start text-muted-foreground sm:w-auto" onClick={() => store.disconnectFamily()}>
+        <section className="flex justify-center border-t border-border/60 py-6 lg:col-span-2">
+          <Button type="button" variant="ghost" className="h-11 px-6 text-muted-foreground" onClick={() => store.disconnectFamily()}>
             <LogOut data-icon="inline-start" aria-hidden="true" />
             Se déconnecter
           </Button>
@@ -1394,6 +1389,37 @@ function SettingsPage({
       </div>
     </>
   )
+}
+
+type ThemeAccent = { icon: LucideIcon; bg: string; text: string }
+
+const sourceThemeAccents: Record<string, ThemeAccent> = {
+  "Âges": {
+    icon: Clock,
+    bg: "bg-amber-100/80 dark:bg-amber-950/40",
+    text: "text-amber-700 dark:text-amber-300",
+  },
+  "Allergènes": {
+    icon: ShieldCheck,
+    bg: "bg-rose-100/80 dark:bg-rose-950/40",
+    text: "text-rose-700 dark:text-rose-300",
+  },
+  "Aliments à éviter": {
+    icon: LockKeyhole,
+    bg: "bg-violet-100/80 dark:bg-violet-950/40",
+    text: "text-violet-700 dark:text-violet-300",
+  },
+  "Préparations": {
+    icon: Utensils,
+    bg: "bg-emerald-100/80 dark:bg-emerald-950/40",
+    text: "text-emerald-700 dark:text-emerald-300",
+  },
+}
+
+const defaultThemeAccent: ThemeAccent = {
+  icon: BookOpen,
+  bg: "bg-muted",
+  text: "text-muted-foreground",
 }
 
 function SourcesSettingsSection() {
@@ -1405,33 +1431,52 @@ function SourcesSettingsSection() {
       description={`Les repères s’appuient sur des sources officielles. Repères vérifiés en ${reviewedAt}.`}
       title="Sources & repères"
     >
-      <ul className="grid gap-3">
-        {themes.map(([theme, items]) => (
-          <li key={theme} className="rounded-lg border bg-card/85 p-3 shadow-sm">
-            <p className="flex items-center gap-2 text-sm font-semibold">
-              <BookOpen aria-hidden="true" className="size-4 text-muted-foreground" />
-              {theme}
-            </p>
-            <ul className="mt-2 grid gap-2 text-sm leading-5 text-muted-foreground">
-              {items.map((source) => (
-                <li key={source.id}>
-                  <a
-                    className="font-medium text-foreground underline-offset-4 hover:underline"
-                    href={source.url}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    {source.title}
-                  </a>
-                  <span className="block text-xs text-muted-foreground">
-                    {source.organization} · consulté le {source.accessedAt}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </li>
-        ))}
-      </ul>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {themes.map(([theme, items]) => {
+          const accent = sourceThemeAccents[theme] ?? defaultThemeAccent
+          const Icon = accent.icon
+          return (
+            <article
+              key={theme}
+              className="flex flex-col gap-3 rounded-2xl border bg-card/85 p-4 shadow-sm transition-colors hover:border-primary/25"
+            >
+              <header className="flex items-center gap-2.5">
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "flex size-9 shrink-0 items-center justify-center rounded-full",
+                    accent.bg,
+                  )}
+                >
+                  <Icon className={cn("size-4", accent.text)} />
+                </span>
+                <p className="font-semibold tracking-tight">{theme}</p>
+              </header>
+              <ul className="grid gap-3">
+                {items.map((source) => (
+                  <li key={source.id} className="grid gap-0.5">
+                    <a
+                      className="group inline-flex items-start gap-1.5 text-sm font-medium text-foreground underline-offset-4 hover:underline"
+                      href={source.url}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      <span className="leading-5">{source.title}</span>
+                      <ExternalLink
+                        aria-hidden="true"
+                        className="mt-0.5 size-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground"
+                      />
+                    </a>
+                    <span className="text-xs text-muted-foreground">
+                      {source.organization} · consulté le {source.accessedAt}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          )
+        })}
+      </div>
       <p className="flex items-center gap-2 text-xs leading-5 text-muted-foreground">
         <ShieldCheck aria-hidden="true" className="size-4" />
         {foodSourceReferences.length} références suivies, à revérifier régulièrement.
