@@ -21,6 +21,7 @@ import {
   NotebookText,
   Award,
   PackageCheck,
+  PencilLine,
   Plus,
   RefreshCw,
   Search,
@@ -999,20 +1000,38 @@ function HistoryPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
           {store.tests.map((test) => {
               const food = foods.find((item) => item.id === test.foodId)
               if (!food) return null
+              const status = test.reaction === "aucune réaction" ? "testé" : "réaction"
               return (
                 <AnimatedListItem key={test.id}>
-                  <Card className="paper-surface">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-3">
+                  <Card className="paper-surface overflow-hidden">
+                    <CardHeader className="pb-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <FoodEmoji food={food} />
                         <div className="min-w-0">
-                          <p className="font-medium">{food.name}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">{testDateTimeLabel(test)}</p>
+                          <CardTitle className="truncate">{food.name}</CardTitle>
+                          <CardDescription>{food.category} · {ageSummary(food)}</CardDescription>
                         </div>
-                        <StatusBadge status={test.reaction === "aucune réaction" ? "testé" : "réaction"} />
                       </div>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <p className="text-sm text-muted-foreground">{test.reaction}</p>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="flex flex-wrap gap-2">
+                        <StatusBadge status={status} />
+                        {isInSeason(food) && <SeasonBadge />}
+                        <IntroductionBadge level={food.level} />
                         {popoteEnabled && test.isPopote && <PopoteBadge />}
+                      </div>
+                      <div className="mt-3 rounded-xl border bg-muted/35 p-3">
+                        <p className="text-xs font-semibold uppercase text-muted-foreground">Dernier test</p>
+                        <div className="mt-2 grid gap-2 text-sm text-muted-foreground">
+                          <p className="flex items-center gap-2">
+                            <Clock className="size-4" aria-hidden="true" />
+                            <span>{testDateTimeLabel(test)}</span>
+                          </p>
+                          <p className="flex items-center gap-2">
+                            <span aria-hidden="true">{reactionDisplay[test.reaction].emoji}</span>
+                            <span>{reactionLabels[test.reaction]}</span>
+                          </p>
+                        </div>
                       </div>
                       {test.note && <p className="mt-3 rounded-xl bg-muted/65 p-3 text-sm leading-5">{test.note}</p>}
                       <HistoryTestActions food={food} store={store} test={test} />
@@ -1066,7 +1085,7 @@ function HistoryTestActions({
           onClick={() => setOpen(true)}
           aria-label={`Modifier le test de ${food.name}`}
         >
-          <Plus data-icon="inline-start" aria-hidden="true" />
+          <PencilLine data-icon="inline-start" aria-hidden="true" />
           Modifier
         </Button>
         <Button
