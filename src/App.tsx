@@ -1216,25 +1216,37 @@ function SettingsPage({
           </div>
         </section>
 
-        <SettingsSection
-          description={familyCodeLabel || "Le code original n’est pas disponible sur cet appareil."}
-          title="Espace famille"
-        >
-          <Button type="button" variant="outline" className="h-11 justify-start" onClick={copyFamilyCode} disabled={!familyCodeLabel}>
-            <Copy data-icon="inline-start" aria-hidden="true" />
-            Copier l’identifiant
-          </Button>
-          <div className="grid grid-cols-2 gap-2">
-            <Button type="button" variant="secondary" className="h-11" onClick={() => void store.refresh()}>
-              <RefreshCw data-icon="inline-start" aria-hidden="true" />
-              Rafraîchir
-            </Button>
-            <Button type="button" variant="ghost" className="h-11" onClick={() => store.disconnectFamily()}>
-              <LogOut data-icon="inline-start" aria-hidden="true" />
-              Changer
+        <section className="border-t border-border/60 py-4 first:border-t-0">
+          <h2 className="font-semibold">Espace famille</h2>
+          <div className="mt-3 flex min-w-0 items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-lg font-semibold tracking-normal text-foreground">
+                {familyCodeLabel || "Code indisponible"}
+              </p>
+              {!familyCodeLabel && (
+                <p className="mt-1 text-sm leading-5 text-muted-foreground">
+                  Le code original n’est pas disponible sur cet appareil.
+                </p>
+              )}
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 shrink-0 px-3"
+              onClick={copyFamilyCode}
+              disabled={!familyCodeLabel}
+            >
+              <Copy data-icon="inline-start" aria-hidden="true" />
+              Copier
             </Button>
           </div>
-        </SettingsSection>
+          <div className="mt-3">
+            <Button type="button" variant="ghost" className="h-11 w-full justify-start text-muted-foreground" onClick={() => store.disconnectFamily()}>
+              <LogOut data-icon="inline-start" aria-hidden="true" />
+              Se déconnecter
+            </Button>
+          </div>
+        </section>
 
         <SettingsSection description="Le thème reste propre à cet appareil." title="Apparence">
           <div className="grid grid-cols-3 gap-1.5 rounded-lg bg-muted/70 p-1.5">
