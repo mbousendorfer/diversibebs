@@ -1,4 +1,4 @@
-import { lazy, memo, Suspense, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react"
+import { createContext, lazy, memo, Suspense, type ReactNode, useContext, useEffect, useId, useMemo, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { NavLink, Route, Routes } from "react-router-dom"
 import {
@@ -126,48 +126,61 @@ const introductionFilterLabels: Record<IntroductionFilter, string> = {
 type ThemeMode = "light" | "system" | "dark"
 
 const themeStorageKey = "diversibebs-theme-v1"
+const appOptionsStorageKey = "diversibebs-options-v1"
+
+type AppOptions = {
+  popoteEnabled: boolean
+  setPopoteEnabled: (enabled: boolean) => void
+}
+
+const AppOptionsContext = createContext<AppOptions | null>(null)
 
 function App() {
   const store = useBabyStore()
   const [theme, setTheme] = useTheme()
+  const appOptions = useStoredAppOptions()
   const badgeUnlockDates = useBadgeUnlockDates(store.tests, store.syncStatus)
   const suggestions = weeklySuggestions(foods, store.profile.ageMonths, store.testedFoodIds)
   const recentTests = store.tests.slice(0, 4)
 
   if (!store.familySession) {
     return (
-      <div className="safe-shell soft-surface">
-        <main className="mx-auto flex min-h-[100svh] w-full max-w-xl flex-col justify-center gap-5 px-4 py-5">
-          <FamilySetup store={store} />
-        </main>
-        <Toaster />
-      </div>
+      <AppOptionsContext.Provider value={appOptions}>
+        <div className="safe-shell soft-surface">
+          <main className="mx-auto flex min-h-[100svh] w-full max-w-xl flex-col justify-center gap-5 px-4 py-5">
+            <FamilySetup store={store} />
+          </main>
+          <Toaster />
+        </div>
+      </AppOptionsContext.Provider>
     )
   }
 
   return (
-    <div className="safe-shell soft-surface">
-      <main className="mx-auto flex w-full max-w-xl flex-col gap-5 px-4 py-5">
-        <PwaStatus />
-        <Routes>
-          <Route path="/" element={<HomePage store={store} suggestions={suggestions} recentTests={recentTests} />} />
-          <Route path="/foods" element={<FoodsPage store={store} />} />
-          <Route path="/week" element={<WeekPage suggestions={suggestions} store={store} />} />
-          <Route path="/history" element={<HistoryPage store={store} />} />
-          <Route
-            path="/discoveries"
-            element={
-              <Suspense fallback={<PageLoading label="Découvertes" />}>
-                <DiscoveriesPage tests={store.tests} badgeUnlockDates={badgeUnlockDates} />
-              </Suspense>
-            }
-          />
-          <Route path="/settings" element={<SettingsPage store={store} theme={theme} setTheme={setTheme} />} />
-        </Routes>
-      </main>
-      <BottomNav />
-      <Toaster />
-    </div>
+    <AppOptionsContext.Provider value={appOptions}>
+      <div className="safe-shell soft-surface">
+        <main className="mx-auto flex w-full max-w-xl flex-col gap-5 px-4 py-5">
+          <PwaStatus />
+          <Routes>
+            <Route path="/" element={<HomePage store={store} suggestions={suggestions} recentTests={recentTests} />} />
+            <Route path="/foods" element={<FoodsPage store={store} />} />
+            <Route path="/week" element={<WeekPage suggestions={suggestions} store={store} />} />
+            <Route path="/history" element={<HistoryPage store={store} />} />
+            <Route
+              path="/discoveries"
+              element={
+                <Suspense fallback={<PageLoading label="Découvertes" />}>
+                  <DiscoveriesPage tests={store.tests} badgeUnlockDates={badgeUnlockDates} />
+                </Suspense>
+              }
+            />
+            <Route path="/settings" element={<SettingsPage store={store} theme={theme} setTheme={setTheme} />} />
+          </Routes>
+        </main>
+        <BottomNav />
+        <Toaster />
+      </div>
+    </AppOptionsContext.Provider>
   )
 }
 
@@ -215,6 +228,36 @@ function useTheme() {
   }, [theme])
 
   return [theme, setTheme] as const
+}
+
+function useStoredAppOptions() {
+  const [popoteEnabled, setPopoteEnabled] = useState(() => {
+    try {
+      const stored = localStorage.getItem(appOptionsStorageKey)
+      if (!stored) return true
+
+      const parsed = JSON.parse(stored) as Partial<Pick<AppOptions, "popoteEnabled">>
+      return parsed.popoteEnabled !== false
+    } catch {
+      return true
+    }
+  })
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(appOptionsStorageKey, JSON.stringify({ popoteEnabled }))
+    } catch {
+      // Local display preference; the app remains usable without persistence.
+    }
+  }, [popoteEnabled])
+
+  return useMemo(() => ({ popoteEnabled, setPopoteEnabled }), [popoteEnabled])
+}
+
+function useAppOptions() {
+  const options = useContext(AppOptionsContext)
+  if (!options) throw new Error("AppOptionsContext is missing")
+  return options
 }
 
 function useBadgeUnlockDates(
@@ -344,6 +387,8 @@ function HomePage({
   suggestions: Food[]
   recentTests: ReturnType<typeof useBabyStore>["tests"]
 }) {
+  const { popoteEnabled } = useAppOptions()
+
   return (
     <>
       <Header eyebrow="Diversification" title="Diversibebs" />
@@ -405,7 +450,7 @@ function HomePage({
                     <p className="font-medium">{food.emoji} {food.name}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       <p className="text-sm text-muted-foreground">{new Date(test.date).toLocaleDateString("fr-FR")}</p>
-                      {test.isPopote && <PopoteBadge />}
+                      {popoteEnabled && test.isPopote && <PopoteBadge />}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -425,10 +470,15 @@ function HomePage({
 }
 
 function FoodsPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
+  const { popoteEnabled } = useAppOptions()
   const [query, setQuery] = useState("")
   const [filters, setFilters] = useState<FoodFilters>(initialFoodFilters)
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
   const normalizedQuery = query.toLowerCase().trim()
+
+  useEffect(() => {
+    if (!popoteEnabled && filters.popoteOnly) updateFilters({ popoteOnly: false })
+  }, [filters.popoteOnly, popoteEnabled])
 
   function updateFilters(nextFilters: Partial<FoodFilters>) {
     setFilters((current) => ({ ...current, ...nextFilters }))
@@ -459,7 +509,7 @@ function FoodsPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
   const presetCounts = useMemo(
     () => ({
       allergens: searchableFoods.filter((food) => food.tags.includes("allergène")).length,
-      popote: searchableFoods.filter((food) => food.isPopoteEligible).length,
+      popote: popoteEnabled ? searchableFoods.filter((food) => food.isPopoteEligible).length : 0,
       season: searchableFoods.filter((food) => isInSeason(food)).length,
       untested: searchableFoods.filter((food) => getStatus(food.id, store.latestByFood) === "non testé").length,
     }),
@@ -473,9 +523,9 @@ function FoodsPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
     if (filters.introduction !== "toutes") chips.push({ key: "introduction", label: `Introduction ${introductionFilterLabels[filters.introduction].toLowerCase()}`, reset: { introduction: "toutes" } })
     if (filters.seasonOnly) chips.push({ key: "seasonOnly", label: "De saison", reset: { seasonOnly: false } })
     if (filters.allergensOnly) chips.push({ key: "allergensOnly", label: "Allergènes", reset: { allergensOnly: false } })
-    if (filters.popoteOnly) chips.push({ key: "popoteOnly", label: "Popote", reset: { popoteOnly: false } })
+    if (popoteEnabled && filters.popoteOnly) chips.push({ key: "popoteOnly", label: "Popote", reset: { popoteOnly: false } })
     return chips
-  }, [filters])
+  }, [filters, popoteEnabled])
 
   const hasActiveFilters = activeFilterChips.length > 0
 
@@ -495,12 +545,12 @@ function FoodsPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
           (filters.introduction === "possible" && food.level === "possible")
         const matchesSeason = !filters.seasonOnly || isInSeason(food)
         const matchesAllergens = !filters.allergensOnly || food.tags.includes("allergène")
-        const matchesPopote = !filters.popoteOnly || food.isPopoteEligible
+        const matchesPopote = !popoteEnabled || !filters.popoteOnly || food.isPopoteEligible
 
         return matchesCategory && matchesStatus && matchesIntroduction && matchesSeason && matchesAllergens && matchesPopote
       })
       .sort((a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base" }))
-  }, [filters, searchableFoods, store.latestByFood])
+  }, [filters, popoteEnabled, searchableFoods, store.latestByFood])
 
   return (
     <>
@@ -536,12 +586,14 @@ function FoodsPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
             label="De saison"
             onClick={() => updateFilters({ seasonOnly: !filters.seasonOnly })}
           />
-          <QuickFilterButton
-            active={filters.popoteOnly}
-            count={presetCounts.popote}
-            label="Popote"
-            onClick={() => updateFilters({ popoteOnly: !filters.popoteOnly })}
-          />
+          {popoteEnabled && (
+            <QuickFilterButton
+              active={filters.popoteOnly}
+              count={presetCounts.popote}
+              label="Popote"
+              onClick={() => updateFilters({ popoteOnly: !filters.popoteOnly })}
+            />
+          )}
           <QuickFilterButton
             active={filters.allergensOnly}
             count={presetCounts.allergens}
@@ -659,7 +711,7 @@ function FoodsPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
                 <div className="grid grid-cols-1 gap-2">
                   <FilterToggle active={filters.seasonOnly} count={presetCounts.season} label="De saison" onClick={() => updateFilters({ seasonOnly: !filters.seasonOnly })} />
                   <FilterToggle active={filters.allergensOnly} count={presetCounts.allergens} label="Allergènes" onClick={() => updateFilters({ allergensOnly: !filters.allergensOnly })} />
-                  <FilterToggle active={filters.popoteOnly} count={presetCounts.popote} label="Popote" onClick={() => updateFilters({ popoteOnly: !filters.popoteOnly })} />
+                  {popoteEnabled && <FilterToggle active={filters.popoteOnly} count={presetCounts.popote} label="Popote" onClick={() => updateFilters({ popoteOnly: !filters.popoteOnly })} />}
                 </div>
               </FilterSection>
             </div>
@@ -844,6 +896,8 @@ function WeekPage({
 }
 
 function HistoryPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
+  const { popoteEnabled } = useAppOptions()
+
   return (
     <>
       <Header eyebrow="Journal" title="Historique" />
@@ -871,7 +925,7 @@ function HistoryPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
                     </div>
                     <div className="mt-1 flex flex-wrap gap-2">
                       <p className="text-sm text-muted-foreground">{test.reaction}</p>
-                      {test.isPopote && <PopoteBadge />}
+                      {popoteEnabled && test.isPopote && <PopoteBadge />}
                     </div>
                     {test.note && <p className="mt-2 rounded-md bg-muted p-3 text-sm">{test.note}</p>}
                     <HistoryTestActions food={food} store={store} test={test} />
@@ -934,6 +988,7 @@ function SettingsPage({
   theme: ThemeMode
   setTheme: (theme: ThemeMode) => void
 }) {
+  const { popoteEnabled, setPopoteEnabled } = useAppOptions()
   const [childName, setChildName] = useState(store.profile.childName)
   const [birthDate, setBirthDate] = useState(store.profile.birthDate)
   const [isSavingChildProfile, setIsSavingChildProfile] = useState(false)
@@ -1099,6 +1154,29 @@ function SettingsPage({
 
       <Card className="bg-card/90">
         <CardHeader>
+          <CardTitle>Options</CardTitle>
+          <CardDescription>Affichez uniquement les informations utiles à votre suivi.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <label className="flex items-center justify-between gap-3 rounded-md border bg-card p-3 text-sm font-medium">
+            <span className="flex min-w-0 flex-col gap-1">
+              <span>Option Popote</span>
+              <span className="text-xs font-normal leading-5 text-muted-foreground">
+                Afficher les filtres, badges et choix liés aux gourdes Popote.
+              </span>
+            </span>
+            <input
+              className="size-5 accent-primary"
+              type="checkbox"
+              checked={popoteEnabled}
+              onChange={(event) => setPopoteEnabled(event.target.checked)}
+            />
+          </label>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-card/90">
+        <CardHeader>
           <CardTitle>Sauvegarde locale</CardTitle>
           <CardDescription>
             Exportez un fichier JSON pour garder une copie ou migrer vers un autre appareil.
@@ -1149,6 +1227,7 @@ function ThemeButton({
 }
 
 const FoodCard = memo(function FoodCard({ food, store }: { food: Food; store: ReturnType<typeof useBabyStore> }) {
+  const { popoteEnabled } = useAppOptions()
   const status = getStatus(food.id, store.latestByFood)
   const existingTest = store.latestByFood.get(food.id)
 
@@ -1178,7 +1257,7 @@ const FoodCard = memo(function FoodCard({ food, store }: { food: Food; store: Re
             <StatusBadge status={status} />
             {isInSeason(food) && <SeasonBadge />}
             <IntroductionBadge level={food.level} />
-            {food.isPopoteEligible && <PopoteBadge label="Popote possible" />}
+            {popoteEnabled && food.isPopoteEligible && <PopoteBadge label="Popote possible" />}
           </CardContent>
         </Card>
       </button>
@@ -1280,6 +1359,7 @@ function FoodTestDrawer({
   store: ReturnType<typeof useBabyStore>
   test?: FoodTest
 }) {
+  const { popoteEnabled } = useAppOptions()
   const existingTest = test ?? store.latestByFood.get(food.id)
   const isEditing = Boolean(existingTest)
   const [date, setDate] = useState(() => existingTest?.date ?? new Date().toISOString().slice(0, 10))
@@ -1311,7 +1391,7 @@ function FoodTestDrawer({
     const nextTest = {
       foodId: food.id,
       date,
-      isPopote: food.isPopoteEligible && isPopote,
+      isPopote: popoteEnabled && food.isPopoteEligible ? isPopote : existingTest?.isPopote ?? false,
       reaction: existingTest?.reaction ?? "aucune réaction" as const,
       note,
     }
@@ -1381,7 +1461,7 @@ function FoodTestDrawer({
               <StatusBadge status={status} />
               {isInSeason(food) && <SeasonBadge />}
               <IntroductionBadge level={food.level} />
-              {food.isPopoteEligible && <PopoteBadge label="Popote possible" />}
+              {popoteEnabled && food.isPopoteEligible && <PopoteBadge label="Popote possible" />}
               <Badge variant="outline" className="h-8 max-w-full gap-1.5 truncate px-3">
                 {monthNames(food.seasonMonths)}
               </Badge>
@@ -1398,7 +1478,7 @@ function FoodTestDrawer({
                   onChange={(event) => setDate(event.target.value)}
                 />
               </label>
-              {food.isPopoteEligible && (
+              {popoteEnabled && food.isPopoteEligible && (
                 <label className="flex items-center justify-between gap-3 rounded-md border bg-card p-3 text-sm font-medium">
                   <span className="flex min-w-0 items-center gap-2">
                     <PackageCheck aria-hidden="true" />
