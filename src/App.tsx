@@ -1801,7 +1801,6 @@ function FoodEmoji({ food, size = "md" }: { food: Food; size?: "sm" | "md" | "lg
 const FoodCard = memo(function FoodCard({ food, store }: { food: Food; store: ReturnType<typeof useBabyStore> }) {
   const { activePopotePackId } = useAppOptions()
   const status = getStatus(food.id, store.latestByFood)
-  const existingTest = store.latestByFood.get(food.id)
 
   const [open, setOpen] = useState(false)
 
@@ -1811,7 +1810,7 @@ const FoodCard = memo(function FoodCard({ food, store }: { food: Food; store: Re
         type="button"
         className="block w-full touch-manipulation rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         onClick={() => setOpen(true)}
-        aria-label={`${existingTest ? "Modifier" : "Tester"} ${food.name}`}
+        aria-label={`Ajouter une prise de ${food.name}`}
       >
         <Card
           className={cn(
@@ -1837,7 +1836,7 @@ const FoodCard = memo(function FoodCard({ food, store }: { food: Food; store: Re
           </CardContent>
         </Card>
       </button>
-      {open && <FoodTestDrawer food={food} store={store} test={existingTest} open={open} onOpenChange={setOpen} />}
+      {open && <FoodTestDrawer food={food} store={store} open={open} onOpenChange={setOpen} />}
     </>
   )
 })
@@ -1900,18 +1899,20 @@ function FoodTestDrawer({
   test?: FoodTest
 }) {
   const { activePopotePackId } = useAppOptions()
-  const existingTest = test ?? store.latestByFood.get(food.id)
-  const isEditing = Boolean(existingTest)
-  const [date, setDate] = useState(() => existingTest?.date ?? new Date().toISOString().slice(0, 10))
-  const [mealTime, setMealTime] = useState(() => existingTest?.mealTime || defaultMealTimePreset.time)
+  const foodTests = useMemo(() => store.tests.filter((item) => item.foodId === food.id), [food.id, store.tests])
+  const latestFoodTest = foodTests[0]
+  const [selectedTest, setSelectedTest] = useState<FoodTest | null>(() => test ?? null)
+  const isEditing = Boolean(selectedTest)
+  const [date, setDate] = useState(() => selectedTest?.date ?? new Date().toISOString().slice(0, 10))
+  const [mealTime, setMealTime] = useState(() => selectedTest?.mealTime || defaultMealTimePreset.time)
   const [mealTimePreset, setMealTimePreset] = useState<MealTimePresetId>(() =>
-    existingTest?.mealTime ? mealTimePresetFor(existingTest.mealTime) : defaultMealTimePreset.id,
+    selectedTest?.mealTime ? mealTimePresetFor(selectedTest.mealTime) : defaultMealTimePreset.id,
   )
-  const [isPopote, setIsPopote] = useState(() => existingTest?.isPopote ?? false)
-  const [reaction, setReaction] = useState<Reaction>(() => existingTest?.reaction ?? "aucune réaction")
-  const [note, setNote] = useState(() => existingTest?.note ?? "")
-  const [showNote, setShowNote] = useState(() => Boolean(existingTest?.note))
-  const [confirmingRemoval, setConfirmingRemoval] = useState(false)
+  const [isPopote, setIsPopote] = useState(() => selectedTest?.isPopote ?? false)
+  const [reaction, setReaction] = useState<Reaction>(() => selectedTest?.reaction ?? "aucune réaction")
+  const [note, setNote] = useState(() => selectedTest?.note ?? "")
+  const [showNote, setShowNote] = useState(() => Boolean(selectedTest?.note))
+  const [confirmingRemovalId, setConfirmingRemovalId] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const titleId = useId()
   const status = getStatus(food.id, store.latestByFood)
@@ -1933,6 +1934,36 @@ function FoodTestDrawer({
     }
   }, [onOpenChange, open])
 
+  useEffect(() => {
+    if (!confirmingRemovalId) return
+    const timeout = window.setTimeout(() => setConfirmingRemovalId(null), 3500)
+    return () => window.clearTimeout(timeout)
+  }, [confirmingRemovalId])
+
+  function resetFormForNewTest() {
+    setSelectedTest(null)
+    setDate(new Date().toISOString().slice(0, 10))
+    setMealTime(defaultMealTimePreset.time)
+    setMealTimePreset(defaultMealTimePreset.id)
+    setIsPopote(false)
+    setReaction("aucune réaction")
+    setNote("")
+    setShowNote(false)
+    setConfirmingRemovalId(null)
+  }
+
+  function editTest(nextTest: FoodTest) {
+    setSelectedTest(nextTest)
+    setDate(nextTest.date)
+    setMealTime(nextTest.mealTime || defaultMealTimePreset.time)
+    setMealTimePreset(nextTest.mealTime ? mealTimePresetFor(nextTest.mealTime) : defaultMealTimePreset.id)
+    setIsPopote(nextTest.isPopote)
+    setReaction(nextTest.reaction)
+    setNote(nextTest.note)
+    setShowNote(Boolean(nextTest.note))
+    setConfirmingRemovalId(null)
+  }
+
   async function saveTest() {
     if (isSaving) return
 
@@ -1940,31 +1971,25 @@ function FoodTestDrawer({
       foodId: food.id,
       date,
       mealTime,
-      isPopote: isFoodInPack(food, activePopotePackId) ? isPopote : existingTest?.isPopote ?? false,
+      isPopote: isFoodInPack(food, activePopotePackId) ? isPopote : selectedTest?.isPopote ?? false,
       reaction,
       note,
     }
 
     setIsSaving(true)
     try {
-      if (existingTest) {
-        await store.updateTest(existingTest.id, nextTest)
-        toast.success(`${food.name} mis à jour`)
+      if (selectedTest) {
+        await store.updateTest(selectedTest.id, nextTest)
+        toast.success(`Prise de ${food.name} mise à jour`)
       } else {
         await store.addTest(nextTest)
-        toast.success(`${food.name} ajouté à l’historique`)
+        toast.success(`Nouvelle prise de ${food.name} ajoutée`)
       }
     } finally {
       setIsSaving(false)
     }
 
     onOpenChange(false)
-    setIsPopote(false)
-    setReaction("aucune réaction")
-    setMealTime(defaultMealTimePreset.time)
-    setMealTimePreset(defaultMealTimePreset.id)
-    setNote("")
-    setShowNote(false)
   }
 
   function selectMealTimePreset(presetId: MealTimePresetId) {
@@ -1976,16 +2001,19 @@ function FoodTestDrawer({
     if (preset) setMealTime(preset.time)
   }
 
-  async function removeTest() {
-    if (!existingTest) return
-    if (!confirmingRemoval) {
-      setConfirmingRemoval(true)
+  async function removeTrackedTest(testToRemove: FoodTest) {
+    if (confirmingRemovalId !== testToRemove.id) {
+      setConfirmingRemovalId(testToRemove.id)
       return
     }
 
-    await store.deleteTest(existingTest.id)
+    await store.deleteTest(testToRemove.id)
     toast.success(`${food.name} retiré du journal`)
-    onOpenChange(false)
+    setConfirmingRemovalId(null)
+
+    if (selectedTest?.id === testToRemove.id) {
+      resetFormForNewTest()
+    }
   }
 
   if (!open) return null
@@ -2012,7 +2040,7 @@ function FoodTestDrawer({
               {food.name}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {food.category} · {isEditing ? "test déjà enregistré" : ageSummary(food)}
+              {food.category} · {isEditing ? "Modifier la prise" : "Nouvelle prise"}
             </p>
           </div>
           <button
@@ -2035,8 +2063,91 @@ function FoodTestDrawer({
             </div>
             <p className="rounded-xl bg-muted/65 p-4 text-sm leading-6">{food.preparation}</p>
             <FoodSourceNote food={food} />
+            {foodTests.length > 0 && (
+              <div className="rounded-xl border bg-card/85 p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">Suivi</p>
+                    <p className="mt-1 text-sm font-medium">
+                      {foodTests.length} prise{foodTests.length > 1 ? "s" : ""} enregistrée{foodTests.length > 1 ? "s" : ""}
+                    </p>
+                  </div>
+                  {latestFoodTest && (
+                    <Badge variant="outline" className="h-auto max-w-[52%] justify-start px-2 py-1 text-left text-xs leading-4">
+                      Dernière : {testDateTimeLabel(latestFoodTest)}
+                    </Badge>
+                  )}
+                </div>
+                <div className="mt-3 grid gap-2">
+                  {foodTests.slice(0, 4).map((trackedTest) => {
+                    const isSelectedTest = selectedTest?.id === trackedTest.id
+                    const isConfirmingRemoval = confirmingRemovalId === trackedTest.id
+
+                    return (
+                      <div
+                        key={trackedTest.id}
+                        className={cn(
+                          "flex min-w-0 items-center justify-between gap-3 rounded-lg border bg-background/55 px-3 py-2",
+                          isSelectedTest && "border-primary/35 bg-secondary/45",
+                        )}
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{testDateTimeLabel(trackedTest)}</p>
+                          <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+                            <span aria-hidden="true">{reactionDisplay[trackedTest.reaction].emoji}</span>
+                            <span className="truncate">{reactionLabels[trackedTest.reaction]}</span>
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 text-muted-foreground hover:text-foreground"
+                            onClick={() => editTest(trackedTest)}
+                            aria-label={`Modifier la prise de ${food.name} du ${testDateTimeLabel(trackedTest)}`}
+                            title="Modifier"
+                          >
+                            <PencilLine aria-hidden="true" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                              "size-8",
+                              isConfirmingRemoval ? "text-destructive" : "text-muted-foreground hover:text-destructive",
+                            )}
+                            onClick={() => removeTrackedTest(trackedTest)}
+                            aria-label={
+                              isConfirmingRemoval
+                                ? `Confirmer le retrait de la prise de ${food.name}`
+                                : `Retirer cette prise de ${food.name}`
+                            }
+                            title={isConfirmingRemoval ? "Confirmer le retrait" : "Retirer"}
+                          >
+                            <Trash2 aria-hidden="true" />
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
             <Separator />
             <div className="flex min-w-0 flex-col gap-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase text-muted-foreground">
+                  {isEditing ? "Modifier la prise" : "Nouvelle prise"}
+                </p>
+                {isEditing && (
+                  <Button type="button" variant="ghost" size="sm" onClick={resetFormForNewTest}>
+                    <Plus data-icon="inline-start" aria-hidden="true" />
+                    Nouvelle prise
+                  </Button>
+                )}
+              </div>
               <div className="grid gap-4">
                 <label className="grid min-w-0 gap-2">
                   <span className="text-xs font-semibold uppercase text-muted-foreground">Date</span>
@@ -2175,14 +2286,8 @@ function FoodTestDrawer({
           <div className="grid gap-2">
             <Button type="button" className="h-12 w-full" onClick={saveTest} disabled={isSaving}>
               {isSaving && <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />}
-              {isSaving ? "Sauvegarde..." : isEditing ? "Sauvegarder les changements" : "Marquer comme testé"}
+              {isSaving ? "Sauvegarde..." : isEditing ? "Sauvegarder les changements" : "Ajouter cette prise"}
             </Button>
-            {existingTest && (
-              <Button type="button" variant="outline" className="h-11 w-full text-destructive" onClick={removeTest} disabled={isSaving}>
-                <Trash2 data-icon="inline-start" aria-hidden="true" />
-                {confirmingRemoval ? "Confirmer le retrait" : "Retirer ce test"}
-              </Button>
-            )}
           </div>
         </div>
       </div>

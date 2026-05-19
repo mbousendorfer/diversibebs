@@ -91,6 +91,44 @@ describe("parseBackupPayload", () => {
     expect(result.state.tests[0].note).toBe("")
   })
 
+  it("preserves repeated tests for the same food and sorts them by date and time", () => {
+    const result = parseBackupPayload({
+      ...validBackup(),
+      state: {
+        profile: { ageMonths: 6, birthDate: "2025-11-01", childName: "Sam" },
+        tests: [
+          {
+            id: "t-older",
+            foodId: "carotte",
+            date: "2026-05-01",
+            mealTime: "12:00",
+            reaction: "aucune réaction",
+          },
+          {
+            id: "t-newer",
+            foodId: "carotte",
+            date: "2026-05-03",
+            mealTime: "08:00",
+            reaction: "rougeur",
+          },
+          {
+            id: "t-same-day-later",
+            foodId: "carotte",
+            date: "2026-05-03",
+            mealTime: "18:30",
+            reaction: "aucune réaction",
+          },
+        ],
+      },
+    })
+
+    expect(result.state.tests.map((test) => test.id)).toEqual([
+      "t-same-day-later",
+      "t-newer",
+      "t-older",
+    ])
+  })
+
   it("drops test entries that lack required identifiers", () => {
     const result = parseBackupPayload({
       ...validBackup(),
