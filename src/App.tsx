@@ -2336,7 +2336,7 @@ function SeasonMonthsGrid({ activeMonths }: { activeMonths: number[] }) {
                 : "border-border bg-muted/45 text-muted-foreground",
               isCurrentMonth && (
                 isActive
-                  ? "border-primary bg-primary text-primary-foreground"
+                  ? "border-[hsl(21_70%_34%)] bg-[hsl(21_70%_34%)] text-status-season-month-foreground dark:border-[hsl(24_70%_44%)] dark:bg-[hsl(24_70%_44%)] dark:text-white"
                   : "border-foreground/30 bg-muted text-foreground"
               ),
             )}
