@@ -2573,7 +2573,7 @@ function BottomNav() {
   return (
     <nav
       aria-label="Navigation principale"
-      className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-2xl border-t bg-background/95 px-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2 shadow-nav backdrop-blur lg:hidden"
+      className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-2xl border-t bg-background/95 px-3 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-1.5 shadow-nav backdrop-blur lg:hidden"
     >
       <div className="grid grid-cols-5 gap-1">
         {navigationItems.map((item) => (
@@ -2583,7 +2583,7 @@ function BottomNav() {
             end={item.to === "/"}
             className={({ isActive }) =>
               cn(
-                "flex min-h-14 touch-manipulation flex-col items-center justify-center gap-1 rounded-xl text-xs font-semibold text-muted-foreground transition-all duration-200 hover:bg-muted/65 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                "flex min-h-12 touch-manipulation flex-col items-center justify-center gap-0.5 rounded-xl text-xs font-semibold text-muted-foreground transition-all duration-200 hover:bg-muted/65 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 isActive && "bg-secondary text-secondary-foreground shadow-sm",
               )
             }

@@ -237,7 +237,7 @@
   .safe-shell {
     min-height: 100dvh;
     padding-top: env(safe-area-inset-top);
-    padding-bottom: calc(env(safe-area-inset-bottom) + 6rem);
+    padding-bottom: calc(max(env(safe-area-inset-bottom), 0.5rem) + 4rem);
   }
 
   @media (min-width: 1024px) {

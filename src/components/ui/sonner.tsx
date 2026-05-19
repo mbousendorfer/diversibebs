@@ -3,6 +3,18 @@ import { Toaster as Sonner } from "sonner"
 const Toaster = () => (
   <Sonner
     duration={4800}
+    mobileOffset={{
+      bottom: "calc(env(safe-area-inset-bottom) + 1rem)",
+      left: "1rem",
+      right: "1rem",
+      top: "calc(env(safe-area-inset-top) + 1.25rem)",
+    }}
+    offset={{
+      bottom: "calc(env(safe-area-inset-bottom) + 1.5rem)",
+      left: "1.5rem",
+      right: "1.5rem",
+      top: "calc(env(safe-area-inset-top) + 1.5rem)",
+    }}
     position="top-center"
     toastOptions={{
       classNames: {
