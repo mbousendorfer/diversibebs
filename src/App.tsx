@@ -1829,7 +1829,7 @@ const FoodCard = memo(function FoodCard({ food, store }: { food: Food; store: Re
             </div>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2 pt-0">
-            <StatusBadge status={status} />
+            {status !== "non testé" && <StatusBadge status={status} />}
             {isInSeason(food) && <SeasonBadge />}
             <IntroductionBadge level={food.level} />
             {isFoodInPack(food, activePopotePackId) && <PopoteBadge label="Popote possible" />}
