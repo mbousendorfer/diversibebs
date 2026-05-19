@@ -2109,36 +2109,55 @@ function FoodTestDrawer({
                             <span className="truncate">{reactionLabels[trackedTest.reaction]}</span>
                           </p>
                         </div>
-                        <div className="flex shrink-0 items-center gap-1">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="size-8 text-muted-foreground hover:text-foreground"
-                            onClick={() => editTest(trackedTest)}
-                            aria-label={`Modifier la prise de ${food.name} du ${testDateTimeLabel(trackedTest)}`}
-                            title="Modifier"
-                          >
-                            <PencilLine aria-hidden="true" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className={cn(
-                              "size-8",
-                              isConfirmingRemoval ? "text-destructive" : "text-muted-foreground hover:text-destructive",
-                            )}
-                            onClick={() => removeTrackedTest(trackedTest)}
-                            aria-label={
-                              isConfirmingRemoval
-                                ? `Confirmer le retrait de la prise de ${food.name}`
-                                : `Retirer cette prise de ${food.name}`
-                            }
-                            title={isConfirmingRemoval ? "Confirmer le retrait" : "Retirer"}
-                          >
-                            <Trash2 aria-hidden="true" />
-                          </Button>
+                        <div className="flex min-h-8 shrink-0 items-center gap-1">
+                          {isConfirmingRemoval ? (
+                            <>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-xs"
+                                onClick={() => setConfirmingRemovalId(null)}
+                              >
+                                Annuler
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 px-2 text-xs text-destructive"
+                                onClick={() => removeTrackedTest(trackedTest)}
+                              >
+                                <Trash2 data-icon="inline-start" aria-hidden="true" />
+                                Confirmer
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 text-muted-foreground hover:text-foreground"
+                                onClick={() => editTest(trackedTest)}
+                                aria-label={`Modifier la prise de ${food.name} du ${testDateTimeLabel(trackedTest)}`}
+                                title="Modifier"
+                              >
+                                <PencilLine aria-hidden="true" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 text-muted-foreground hover:text-destructive"
+                                onClick={() => removeTrackedTest(trackedTest)}
+                                aria-label={`Retirer cette prise de ${food.name}`}
+                                title="Retirer"
+                              >
+                                <Trash2 aria-hidden="true" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                     )
