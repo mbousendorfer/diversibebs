@@ -1995,12 +1995,12 @@ const FoodCard = memo(function FoodCard({ food, store }: { food: Food; store: Re
               </div>
             </div>
             <div className="flex w-16 shrink-0 justify-end gap-1" aria-hidden={!inSeason && !inActivePopotePack}>
-              {inSeason ? <FoodCardSignal icon={Leaf} label="De saison" tone="season" /> : <span className="size-7" />}
               {inActivePopotePack ? (
                 <FoodCardSignal icon={PackageCheck} label="Popote possible" tone="popote" />
               ) : (
                 <span className="size-7" />
               )}
+              {inSeason ? <FoodCardSignal icon={Leaf} label="De saison" tone="season" /> : <span className="size-7" />}
             </div>
           </div>
         </Card>
