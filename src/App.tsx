@@ -1809,6 +1809,29 @@ function FoodEmoji({ food, size = "md" }: { food: Food; size?: "sm" | "md" | "lg
   )
 }
 
+function FoodCardAgeSummary({ food }: { food: Food }) {
+  if (
+    food.possibleAgeMonths &&
+    food.recommendedAgeMonths &&
+    food.possibleAgeMonths !== food.recommendedAgeMonths
+  ) {
+    return (
+      <>
+        possible dès {food.possibleAgeMonths} mois ·{" "}
+        <span className="font-semibold text-foreground">conseillé dès {food.recommendedAgeMonths} mois</span>
+      </>
+    )
+  }
+
+  if (food.recommendedAgeMonths) {
+    return <span className="font-semibold text-foreground">conseillé dès {food.recommendedAgeMonths} mois</span>
+  }
+
+  if (food.possibleAgeMonths) return <>possible dès {food.possibleAgeMonths} mois</>
+
+  return <>dès {food.minAgeMonths} mois</>
+}
+
 const FoodCard = memo(function FoodCard({ food, store }: { food: Food; store: ReturnType<typeof useBabyStore> }) {
   const { activePopotePackId } = useAppOptions()
   const status = getStatus(food.id, store.latestByFood)
@@ -1835,14 +1858,16 @@ const FoodCard = memo(function FoodCard({ food, store }: { food: Food; store: Re
               <FoodEmoji food={food} />
               <div className="min-w-0">
                 <CardTitle className="truncate">{food.name}</CardTitle>
-                <CardDescription>{food.category} · {ageSummary(food)}</CardDescription>
+                <CardDescription>
+                  {food.category} · <FoodCardAgeSummary food={food} />
+                </CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2 pt-0">
             {status !== "non testé" && <StatusBadge status={status} />}
             {isInSeason(food) && <SeasonBadge />}
-            <IntroductionBadge level={food.level} />
+            {food.level === "conseillé" && <IntroductionBadge level={food.level} />}
             {isFoodInPack(food, activePopotePackId) && <PopoteBadge label="Popote possible" />}
           </CardContent>
         </Card>
