@@ -2476,13 +2476,23 @@ function FoodSourceNote({ food }: { food: Food }) {
   }
 
   return (
-    <div className="rounded-xl border bg-card/85 p-4 text-sm leading-6 shadow-sm">
+    <div
+      className={cn(
+        "rounded-xl border bg-card/85 p-4 text-sm leading-6 shadow-sm",
+        food.cautionLevel === "attention" && "border-status-attention/25 bg-status-attention/10",
+      )}
+    >
       {cautionTags.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {cautionTags.map((tag) => (
             <span
               key={tag}
-              className="rounded-full border bg-muted px-2.5 py-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              className={cn(
+                "rounded-full border px-2.5 py-0.5 text-xs font-medium uppercase tracking-wide",
+                food.cautionLevel === "attention"
+                  ? "border-status-attention/25 bg-status-attention/15 text-status-attention-foreground dark:text-status-attention"
+                  : "bg-muted text-muted-foreground",
+              )}
             >
               {tag}
             </span>
@@ -2494,7 +2504,9 @@ function FoodSourceNote({ food }: { food: Food }) {
           className={cn(
             "flex items-start gap-2 leading-6",
             cautionTags.length > 0 && "mt-3",
-            food.cautionLevel === "attention" && "text-status-reaction-foreground",
+            food.cautionLevel === "attention"
+              ? "text-status-attention-foreground dark:text-amber-100"
+              : "text-foreground",
           )}
         >
           <ShieldCheck aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
