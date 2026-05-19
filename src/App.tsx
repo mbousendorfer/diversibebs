@@ -367,11 +367,11 @@ function historyDateDetailLabel(date: string) {
   })
 }
 
-function historyEventTimeLabel(test: FoodTest) {
-  if (!test.mealTime) return "Moment non renseigné"
+function historyEventTimeParts(test: FoodTest) {
+  if (!test.mealTime) return { time: "—", moment: "Moment non renseigné" }
 
   const label = mealTimeLabel(test.mealTime)
-  return label === test.mealTime ? test.mealTime : `${test.mealTime} · ${label}`
+  return label === test.mealTime ? { time: test.mealTime, moment: "" } : { time: test.mealTime, moment: label }
 }
 
 function groupTestsByDate(tests: FoodTest[]) {
@@ -1261,18 +1261,27 @@ function HistoryPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
                   {group.tests.length} prise{group.tests.length > 1 ? "s" : ""}
                 </Badge>
               </div>
-              <div className="relative grid gap-3 pl-5">
-                <span className="absolute bottom-4 left-1.5 top-4 w-px bg-border" aria-hidden="true" />
+              <div className="relative grid gap-3">
+                <span className="absolute bottom-4 left-[4.5rem] top-4 w-px bg-border" aria-hidden="true" />
                 {group.tests.map((test) => {
                   const food = foods.find((item) => item.id === test.foodId)
                   if (!food) return null
                   const status = test.reaction === "aucune réaction" ? "testé" : "réaction"
+                  const time = historyEventTimeParts(test)
 
                   return (
-                    <div key={test.id} className="relative">
+                    <div key={test.id} className="relative grid grid-cols-[4rem_minmax(0,1fr)] gap-3">
+                      <div className="pt-4 text-right">
+                        <p className="text-sm font-semibold leading-none text-foreground">{time.time}</p>
+                        {time.moment && (
+                          <p className="mt-1 truncate text-[0.6875rem] font-medium leading-none text-muted-foreground">
+                            {time.moment}
+                          </p>
+                        )}
+                      </div>
                       <span
                         className={cn(
-                          "absolute -left-[1.125rem] top-5 size-3 rounded-full border-2 border-background shadow-sm",
+                          "absolute left-[4.125rem] top-5 size-3 rounded-full border-2 border-background shadow-sm",
                           status === "réaction" ? "bg-status-reaction" : "bg-status-tested",
                         )}
                         aria-hidden="true"
@@ -1283,34 +1292,28 @@ function HistoryPage({ store }: { store: ReturnType<typeof useBabyStore> }) {
                           status === "réaction" && "border-status-reaction/35 bg-status-reaction/10",
                         )}
                       >
-                      <CardContent className="p-3 sm:p-4">
-                        <div className="flex min-w-0 items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="flex items-center gap-2 text-base font-semibold text-foreground sm:text-lg">
-                              <Clock className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                              <span className="truncate">{historyEventTimeLabel(test)}</span>
-                            </p>
-                            <div className="mt-2.5 flex min-w-0 items-center gap-3">
+                        <CardContent className="p-3 sm:p-4">
+                          <div className="flex min-w-0 items-start justify-between gap-3">
+                            <div className="flex min-w-0 items-center gap-3">
                               <FoodEmoji food={food} size="sm" />
                               <div className="min-w-0">
                                 <p className="truncate text-base font-semibold text-foreground">{food.name}</p>
                                 <p className="truncate text-xs text-muted-foreground">{food.category}</p>
                               </div>
                             </div>
+                            <HistoryTestActions food={food} store={store} test={test} />
                           </div>
-                          <HistoryTestActions food={food} store={store} test={test} />
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <HistoryReactionBadge reaction={test.reaction} />
-                          {activePopotePackId !== null && test.isPopote && <PopoteBadge />}
-                        </div>
-                        {test.note && (
-                          <p className="mt-3 rounded-lg border border-border/60 bg-muted/55 p-3 text-sm leading-5">
-                            {test.note}
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <HistoryReactionBadge reaction={test.reaction} />
+                            {activePopotePackId !== null && test.isPopote && <PopoteBadge />}
+                          </div>
+                          {test.note && (
+                            <p className="mt-3 rounded-lg border border-border/60 bg-muted/55 p-3 text-sm leading-5">
+                              {test.note}
+                            </p>
+                          )}
+                        </CardContent>
+                      </Card>
                     </div>
                   )
                 })}
