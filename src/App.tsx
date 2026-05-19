@@ -1946,31 +1946,39 @@ const FoodCard = memo(function FoodCard({ food, store }: { food: Food; store: Re
     <>
       <button
         type="button"
-        className="block w-full touch-manipulation rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="block h-40 w-full touch-manipulation rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         onClick={() => setOpen(true)}
         aria-label={`Ajouter une prise de ${food.name}`}
       >
         <Card
           className={cn(
-            "paper-surface pointer-events-none overflow-hidden transition-colors hover:border-primary/35",
+            "paper-surface pointer-events-none relative h-full overflow-hidden transition-colors hover:border-primary/35",
             status === "testé" && "border-status-tested/40 bg-status-tested/10",
             status === "réaction" && "border-status-reaction/40 bg-status-reaction/10",
           )}
         >
-          <CardHeader className="pb-3">
-            <div className="flex min-w-0 items-center gap-3">
+          {isInSeason(food) && (
+            <span
+              className="absolute right-4 top-4 flex size-8 items-center justify-center rounded-full bg-status-season text-status-season-foreground shadow-sm shadow-primary/10"
+              aria-label="De saison"
+              role="img"
+            >
+              <Leaf className="size-4" aria-hidden="true" />
+            </span>
+          )}
+          <CardHeader className="p-4 pb-3 sm:p-4 sm:pb-3">
+            <div className="flex min-w-0 items-center gap-3 pr-10">
               <FoodEmoji food={food} />
               <div className="min-w-0">
                 <CardTitle className="truncate">{food.name}</CardTitle>
-                <CardDescription>
+                <CardDescription className="truncate">
                   {food.category} · <FoodCardAgeSummary food={food} />
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="flex flex-wrap gap-2 pt-0">
+          <CardContent className="flex flex-wrap gap-2 px-4 pb-4 pt-0 sm:px-4 sm:pb-4">
             {status !== "non testé" && <StatusBadge status={status} />}
-            {isInSeason(food) && <SeasonBadge />}
             {food.level === "conseillé" && <IntroductionBadge level={food.level} />}
             {isFoodInPack(food, activePopotePackId) && <PopoteBadge label="Popote possible" />}
           </CardContent>
