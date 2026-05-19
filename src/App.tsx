@@ -1936,9 +1936,36 @@ function FoodCardAgeSummary({ food }: { food: Food }) {
   return <>dès {food.minAgeMonths} mois</>
 }
 
+function FoodCardSignal({
+  icon: Icon,
+  label,
+  tone,
+}: {
+  icon: LucideIcon
+  label: string
+  tone: "season" | "popote"
+}) {
+  return (
+    <span
+      className={cn(
+        "flex size-7 items-center justify-center rounded-full border shadow-sm",
+        tone === "season" && "border-status-season/25 bg-status-season text-status-season-foreground",
+        tone === "popote" && "border-accent/35 bg-accent text-accent-foreground",
+      )}
+      aria-label={label}
+      role="img"
+      title={label}
+    >
+      <Icon className="size-3.5" aria-hidden="true" />
+    </span>
+  )
+}
+
 const FoodCard = memo(function FoodCard({ food, store }: { food: Food; store: ReturnType<typeof useBabyStore> }) {
   const { activePopotePackId } = useAppOptions()
   const status = getStatus(food.id, store.latestByFood)
+  const inSeason = isInSeason(food)
+  const inActivePopotePack = isFoodInPack(food, activePopotePackId)
 
   const [open, setOpen] = useState(false)
 
@@ -1946,42 +1973,36 @@ const FoodCard = memo(function FoodCard({ food, store }: { food: Food; store: Re
     <>
       <button
         type="button"
-        className="block h-28 w-full touch-manipulation rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="block h-24 w-full touch-manipulation rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         onClick={() => setOpen(true)}
         aria-label={`Ajouter une prise de ${food.name}`}
       >
         <Card
           className={cn(
-            "paper-surface pointer-events-none relative h-full overflow-hidden transition-colors hover:border-primary/35",
-            status === "testé" && "border-status-tested/40 bg-status-tested/10",
-            status === "réaction" && "border-status-reaction/40 bg-status-reaction/10",
+            "paper-surface pointer-events-none h-full overflow-hidden transition-colors hover:border-primary/35",
+            status === "testé" && "border-status-tested/45 bg-status-tested/10",
+            status === "réaction" && "border-status-reaction/45 bg-status-reaction/10",
           )}
         >
-          {isInSeason(food) && (
-            <span
-              className="absolute right-3 top-3 flex size-7 items-center justify-center rounded-full bg-status-season text-status-season-foreground shadow-sm shadow-primary/10"
-              aria-label="De saison"
-              role="img"
-            >
-              <Leaf className="size-3.5" aria-hidden="true" />
-            </span>
-          )}
-          <CardHeader className="p-3 pb-2 sm:p-3 sm:pb-2">
-            <div className="flex min-w-0 items-center gap-3 pr-9">
+          <div className="flex h-full min-w-0 items-center gap-3 p-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
               <FoodEmoji food={food} size="sm" />
               <div className="min-w-0">
                 <CardTitle className="truncate text-base">{food.name}</CardTitle>
-                <CardDescription className="truncate">
+                <CardDescription className="mt-1 truncate text-sm leading-5">
                   {food.category} · <FoodCardAgeSummary food={food} />
                 </CardDescription>
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="absolute inset-x-3 bottom-3 flex flex-nowrap gap-1.5 overflow-hidden p-0">
-            {status !== "non testé" && <StatusBadge status={status} />}
-            {food.level === "conseillé" && <IntroductionBadge level={food.level} />}
-            {isFoodInPack(food, activePopotePackId) && <PopoteBadge label="Popote possible" />}
-          </CardContent>
+            <div className="flex w-16 shrink-0 justify-end gap-1" aria-hidden={!inSeason && !inActivePopotePack}>
+              {inSeason ? <FoodCardSignal icon={Leaf} label="De saison" tone="season" /> : <span className="size-7" />}
+              {inActivePopotePack ? (
+                <FoodCardSignal icon={PackageCheck} label="Popote possible" tone="popote" />
+              ) : (
+                <span className="size-7" />
+              )}
+            </div>
+          </div>
         </Card>
       </button>
       {open && <FoodTestDrawer food={food} store={store} open={open} onOpenChange={setOpen} />}
