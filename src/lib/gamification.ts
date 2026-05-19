@@ -44,6 +44,22 @@ export type Goal = {
   title: string
 }
 
+export type DiscoveryMilestone = {
+  completed: boolean
+  description: string
+  id: string
+  label: string
+  target: number
+}
+
+export type DiscoveryJourney = {
+  completedMilestones: number
+  current: number
+  milestones: DiscoveryMilestone[]
+  nextMilestone?: DiscoveryMilestone
+  target: number
+}
+
 export type GamificationProgress = {
   fruits: number
   notes: number
@@ -77,6 +93,7 @@ export const badgeCategoryLabels: Record<BadgeCategory, string> = {
 }
 
 const badgeUnlockStorageKey = "diversibebs-badge-unlocks-v1"
+const journeyTargets = [1, 3, 5, 10, 15, 25, 50] as const
 
 const greenVegetableIds = new Set([
   "asperge",
@@ -129,6 +146,10 @@ function reactionCount(context: GamificationContext) {
 
 function negativeReactionCount(context: GamificationContext) {
   return context.tests.filter((test) => test.reaction && test.reaction !== "aucune réaction").length
+}
+
+function loggedMealCount(context: GamificationContext) {
+  return context.tests.length
 }
 
 function seasonalFoodCount(context: GamificationContext) {
@@ -630,6 +651,29 @@ export function calculateProgress(foods: Food[], tests: FoodTest[]): Gamificatio
   }
 }
 
+export function calculateDiscoveryJourney(foods: Food[], tests: FoodTest[]): DiscoveryJourney {
+  const context = createGamificationContext(foods, tests)
+  const current = context.testedFoods.length
+  const milestones = journeyTargets.map((target, index) => ({
+    id: `foods-${target}`,
+    label: index === 0 ? "Départ" : `${target}`,
+    description:
+      index === 0
+        ? "La première découverte lance le carnet."
+        : `${target} aliments différents découverts.`,
+    target,
+    completed: current >= target,
+  }))
+
+  return {
+    completedMilestones: milestones.filter((milestone) => milestone.completed).length,
+    current,
+    milestones,
+    nextMilestone: milestones.find((milestone) => !milestone.completed),
+    target: journeyTargets[journeyTargets.length - 1],
+  }
+}
+
 export function calculateGoals(foods: Food[], tests: FoodTest[]): Goal[] {
   const context = createGamificationContext(foods, tests)
   const goals: Array<Omit<Goal, "completed">> = [
@@ -676,10 +720,10 @@ export function calculateGoals(foods: Food[], tests: FoodTest[]): Goal[] {
       progressTarget: 10,
     },
     {
-      id: "reactions-10",
-      title: "Observations tranquilles",
-      description: "Garder 10 réactions dans le journal, sans pression.",
-      progressCurrent: reactionCount(context),
+      id: "logged-meals-10",
+      title: "Carnet régulier",
+      description: "Enregistrer 10 prises pour suivre le rythme des découvertes.",
+      progressCurrent: loggedMealCount(context),
       progressTarget: 10,
     },
   ]
