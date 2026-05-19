@@ -73,6 +73,7 @@ import {
   initialFoodFilters,
   isAgeReady,
   isInSeason,
+  currentMonth,
   monthNames,
   weeklySuggestions,
   type FoodCategoryFilter,
@@ -2313,6 +2314,7 @@ const seasonMonthAbbreviations = ["jan", "fév", "mar", "avr", "mai", "juin", "j
 
 function SeasonMonthsGrid({ activeMonths }: { activeMonths: number[] }) {
   const activeMonthSet = new Set(activeMonths)
+  const currentSeasonMonth = currentMonth()
 
   return (
     <div
@@ -2322,6 +2324,7 @@ function SeasonMonthsGrid({ activeMonths }: { activeMonths: number[] }) {
       {seasonMonthAbbreviations.map((month, index) => {
         const monthNumber = index + 1
         const isActive = activeMonthSet.has(monthNumber)
+        const isCurrentMonth = monthNumber === currentSeasonMonth
 
         return (
           <span
@@ -2331,6 +2334,11 @@ function SeasonMonthsGrid({ activeMonths }: { activeMonths: number[] }) {
               isActive
                 ? "border-status-season-month bg-status-season-month text-status-season-month-foreground shadow-sm"
                 : "border-border bg-muted/45 text-muted-foreground",
+              isCurrentMonth && (
+                isActive
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-foreground/30 bg-muted text-foreground"
+              ),
             )}
             aria-hidden="true"
           >
